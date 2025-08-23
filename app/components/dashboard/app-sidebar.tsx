@@ -1,27 +1,21 @@
 import {
     IconAlertHexagon,
     IconArrowBackUp,
-    IconBrandLivewire,
     IconCamera,
-    IconChartBar,
     IconDashboard,
     IconDatabase,
     IconDevices,
     IconFileAi,
     IconFileDescription,
     IconFileWord,
-    IconFolder,
     IconHelp,
     IconInnerShadowTop,
-    IconListDetails,
     IconReport,
-    IconSearch,
     IconSettings,
     IconUsers,
     IconVideo,
 } from "@tabler/icons-react"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
-import { NavDocuments } from "./nav-documents";
 import { NavMain } from "./nav-main";
 import { NavSecondary } from "./nav-secondary";
 import { NavUser } from "./nav-user";
@@ -128,11 +122,6 @@ const data = {
             url: "#",
             icon: IconHelp,
         },
-        {
-            title: "Search",
-            url: "#",
-            icon: IconSearch,
-        },
     ],
     documents: [
         {
@@ -165,7 +154,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         >
                             <a href="#">
                                 <IconInnerShadowTop className="!size-5" />
-                                <span className="text-base font-semibold">Acme Inc.</span>
+                                <span className="text-base font-semibold">Rurutek Private Limited</span>
                             </a>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -173,7 +162,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarHeader>
             <SidebarContent>
                 <NavMain items={data.navMain} />
-                <NavDocuments items={data.documents} />
+                {/* <NavDocuments items={data.documents} /> */}
                 <NavSecondary items={data.navSecondary} className="mt-auto" />
             </SidebarContent>
             <SidebarFooter>
