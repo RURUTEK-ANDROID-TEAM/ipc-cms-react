@@ -1,6 +1,7 @@
 import type { Route } from "./+types/home";
-import { Button } from "@/components/ui/button";
-
+import Login from "./auth/login";
+import SignUp from "./auth/signup";
+import Dashboard from "./dashboard/dashboard";
 export function meta({ }: Route.MetaArgs) {
   return [
     { title: "New React Router App" },
@@ -9,7 +10,5 @@ export function meta({ }: Route.MetaArgs) {
 }
 
 export default function Home() {
-  return <div className="flex min-h-svh flex-col items-center justify-center">
-    <Button>Click me</Button>
-  </div>;
+  return <Dashboard />
 }
