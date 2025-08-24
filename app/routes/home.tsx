@@ -1,3 +1,4 @@
+import LiveView from "@/components/live-view/live-view";
 import type { Route } from "./+types/home";
 import Login from "./auth/login";
 import SignUp from "./auth/signup";
@@ -10,5 +11,5 @@ export function meta({ }: Route.MetaArgs) {
 }
 
 export default function Home() {
-  return <Dashboard />
+  return <LiveView />
 }
