@@ -24,13 +24,13 @@ import {
   IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
-  IconCircleCheckFilled,
   IconDotsVertical,
   IconGripVertical,
   IconLayoutColumns,
-  IconLoader,
   IconPlus,
-  IconTrendingUp,
+  IconUser,
+  IconUserPentagon,
+  IconUserStar,
 } from "@tabler/icons-react";
 import {
   type ColumnDef,
@@ -47,30 +47,11 @@ import {
   useReactTable,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
-import { toast } from "sonner";
 import { z } from "zod";
 
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
+import { type ChartConfig } from "@/components/ui/chart";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -79,7 +60,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -88,7 +68,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -99,14 +78,28 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export const schema = z.object({
+export const userSchema = z.object({
   id: z.number(),
-  header: z.string(),
-  type: z.string(),
-  status: z.string(),
-  target: z.string(),
-  limit: z.string(),
-  reviewer: z.string(),
+  username: z.string(),
+  role: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const deviceSchema = z.object({
+  id: z.number(),
+  customer_id: z.number(),
+  user_id: z.number(),
+  camera_id: z.number(),
+  uid: z.string(),
+  mac_address: z.string(),
+  ip_address: z.string(),
+  firmware_version: z.string(),
+  model: z.string(),
+  manufacturer: z.string(),
+  serial_number: z.string(),
+  hardware_id: z.string(),
+  assigned_at: z.string(),
 });
 
 // Create a separate component for the drag handle
@@ -129,152 +122,97 @@ function DragHandle({ id }: { id: number }) {
   );
 }
 
-const columns: ColumnDef<z.infer<typeof schema>>[] = [
+const userColumns: ColumnDef<z.infer<typeof userSchema>>[] = [
   {
     id: "drag",
     header: () => null,
     cell: ({ row }) => <DragHandle id={row.original.id} />,
   },
   {
-    id: "select",
-    header: ({ table }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      </div>
-    ),
-    enableSorting: false,
+    accessorKey: "id",
+    header: "ID",
+    cell: ({ row }) => <div className="w-32">{row.original.id}</div>,
     enableHiding: false,
   },
   {
-    accessorKey: "header",
-    header: "Header",
+    accessorKey: "username",
+    header: "Username",
+    cell: ({ row }) => <div className="w-32">{row.original.username}</div>,
+  },
+  {
+    accessorKey: "role",
+    header: "Role",
     cell: ({ row }) => {
-      return <TableCellViewer item={row.original} />;
-    },
-    enableHiding: false,
-  },
-  {
-    accessorKey: "type",
-    header: "Section Type",
-    cell: ({ row }) => (
-      <div className="w-32">
-        <Badge variant="outline" className="text-muted-foreground px-1.5">
-          {row.original.type}
-        </Badge>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
-        {row.original.status}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: "target",
-    header: () => <div className="w-full text-right">Target</div>,
-    cell: ({ row }) => (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-            loading: `Saving ${row.original.header}`,
-            success: "Done",
-            error: "Error",
-          });
-        }}
-      >
-        <Label htmlFor={`${row.original.id}-target`} className="sr-only">
-          Target
-        </Label>
-        <Input
-          className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border dark:bg-transparent"
-          defaultValue={row.original.target}
-          id={`${row.original.id}-target`}
-        />
-      </form>
-    ),
-  },
-  {
-    accessorKey: "limit",
-    header: () => <div className="w-full text-right">Limit</div>,
-    cell: ({ row }) => (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-            loading: `Saving ${row.original.header}`,
-            success: "Done",
-            error: "Error",
-          });
-        }}
-      >
-        <Label htmlFor={`${row.original.id}-limit`} className="sr-only">
-          Limit
-        </Label>
-        <Input
-          className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border dark:bg-transparent"
-          defaultValue={row.original.limit}
-          id={`${row.original.id}-limit`}
-        />
-      </form>
-    ),
-  },
-  {
-    accessorKey: "reviewer",
-    header: "Reviewer",
-    cell: ({ row }) => {
-      const isAssigned = row.original.reviewer !== "Assign reviewer";
+      const roleRaw = row.original.role.toLowerCase();
+      const role = roleRaw.charAt(0).toUpperCase() + roleRaw.slice(1);
 
-      if (isAssigned) {
-        return row.original.reviewer;
+      let color: "destructive" | "secondary" | "default" = "default";
+
+      switch (roleRaw) {
+        case "admin":
+          color = "destructive"; // red-ish
+          break;
+        case "operator":
+          color = "secondary"; // blue-ish
+          break;
+        case "viewer":
+          color = "default"; // gray
+          break;
       }
 
+      const icon =
+        roleRaw === "admin" ? (
+          <IconUser className="size-4 mr-1 text-red-500 dark:text-red-400" />
+        ) : roleRaw === "operator" ? (
+          <IconUserStar className="size-4 mr-1 text-blue-500 dark:text-blue-400" />
+        ) : (
+          <IconUserPentagon className="size-4 mr-1 text-green-500 dark:text-gray-400" />
+        );
+
       return (
-        <>
-          <Label htmlFor={`${row.original.id}-reviewer`} className="sr-only">
-            Reviewer
-          </Label>
-          <Select>
-            <SelectTrigger
-              className="w-38 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate"
-              size="sm"
-              id={`${row.original.id}-reviewer`}
-            >
-              <SelectValue placeholder="Assign reviewer" />
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-              <SelectItem value="Jamik Tashpulatov">
-                Jamik Tashpulatov
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </>
+        <Badge
+          variant="outline"
+          className="px-2 py-0.5 flex items-center gap-1"
+        >
+          {icon}
+          {role}
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: "created_at",
+    header: () => (
+      <div className="w-full text-right font-medium ">Created At</div>
+    ),
+    cell: ({ row }) => {
+      const date = new Date(row.original.created_at);
+      return (
+        <div className="w-full text-right text-sm text-gray-700 dark:text-gray-300">
+          {date.toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+          })}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "updated_at",
+    header: () => (
+      <div className="w-full text-right font-medium">Updated At</div>
+    ),
+    cell: ({ row }) => {
+      const date = new Date(row.original.updated_at);
+      return (
+        <div className="w-full text-right text-sm text-gray-700 dark:text-gray-300">
+          {date.toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+          })}
+        </div>
       );
     },
   },
@@ -294,8 +232,6 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
           <DropdownMenuItem>Edit</DropdownMenuItem>
-          <DropdownMenuItem>Make a copy</DropdownMenuItem>
-          <DropdownMenuItem>Favorite</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
         </DropdownMenuContent>
@@ -304,7 +240,69 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   },
 ];
 
-function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
+const deviceColumns: ColumnDef<z.infer<typeof deviceSchema>>[] = [
+  {
+    id: "drag",
+    header: () => null,
+    cell: ({ row }) => <DragHandle id={row.original.id} />,
+  },
+  { accessorKey: "id", header: "ID", cell: ({ row }) => row.original.id },
+  { accessorKey: "uid", header: "UID", cell: ({ row }) => row.original.uid },
+  {
+    accessorKey: "mac_address",
+    header: "MAC Address",
+    cell: ({ row }) => row.original.mac_address,
+  },
+  {
+    accessorKey: "ip_address",
+    header: "IP Address",
+    cell: ({ row }) => row.original.ip_address,
+  },
+  {
+    accessorKey: "firmware_version",
+    header: "Firmware",
+    cell: ({ row }) => row.original.firmware_version,
+  },
+  {
+    accessorKey: "model",
+    header: "Model",
+    cell: ({ row }) => row.original.model,
+  },
+  {
+    accessorKey: "manufacturer",
+    header: "Manufacturer",
+    cell: ({ row }) => row.original.manufacturer,
+  },
+  {
+    accessorKey: "serial_number",
+    header: "Serial Number",
+    cell: ({ row }) => row.original.serial_number,
+  },
+  {
+    accessorKey: "assigned_at",
+    header: "Assigned At",
+    cell: ({ row }) => new Date(row.original.assigned_at).toLocaleDateString(),
+  },
+  {
+    id: "actions",
+    cell: () => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <IconDotsVertical />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem>Edit</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ),
+  },
+];
+
+function DraggableRow({ row }: { row: Row<any> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
   });
@@ -330,51 +328,97 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
 }
 
 export function DataTable({
-  data: initialData,
+  users: initUsers,
+  devices: initDevices,
 }: {
-  data: z.infer<typeof schema>[];
+  users: z.infer<typeof userSchema>[];
+  devices: z.infer<typeof deviceSchema>[];
 }) {
-  const [data, setData] = React.useState(() => initialData);
-  const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
-  const sortableId = React.useId();
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
     useSensor(TouchSensor, {}),
     useSensor(KeyboardSensor, {})
   );
 
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => data?.map(({ id }) => id) || [],
-    [data]
+  const [userData, setUserData] = React.useState(() => initUsers);
+  const [userRowSelection, setUserRowSelection] = React.useState({});
+  const [userColumnVisibility, setUserColumnVisibility] =
+    React.useState<VisibilityState>({});
+  const [userColumnFilters, setUserColumnFilters] =
+    React.useState<ColumnFiltersState>([]);
+  const [userSorting, setUserSorting] = React.useState<SortingState>([]);
+  const [userPagination, setUserPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  const [deviceData, setDeviceData] = React.useState(() => initDevices);
+  const [deviceRowSelection, setDeviceRowSelection] = React.useState({});
+  const [deviceColumnVisibility, setDeviceColumnVisibility] =
+    React.useState<VisibilityState>({});
+  const [deviceColumnFilters, setDeviceColumnFilters] =
+    React.useState<ColumnFiltersState>([]);
+  const [deviceSorting, setDeviceSorting] = React.useState<SortingState>([]);
+  const [devicePagination, setDevicePagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // Sync props to state
+  React.useEffect(() => setUserData(initUsers), [initUsers]);
+  React.useEffect(() => setDeviceData(initDevices), [initDevices]);
+
+  const userIds = React.useMemo<UniqueIdentifier[]>(
+    () => userData?.map(({ id }) => id) || [],
+    [userData]
   );
 
-  const table = useReactTable({
-    data,
-    columns,
+  const userTable = useReactTable({
+    data: userData,
+    columns: userColumns,
     state: {
-      sorting,
-      columnVisibility,
-      rowSelection,
-      columnFilters,
-      pagination,
+      sorting: userSorting,
+      columnVisibility: userColumnVisibility,
+      rowSelection: userRowSelection,
+      columnFilters: userColumnFilters,
+      pagination: userPagination,
     },
     getRowId: (row) => row.id.toString(),
     enableRowSelection: true,
-    onRowSelectionChange: setRowSelection,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onPaginationChange: setPagination,
+    onRowSelectionChange: setUserRowSelection,
+    onSortingChange: setUserSorting,
+    onColumnFiltersChange: setUserColumnFilters,
+    onColumnVisibilityChange: setUserColumnVisibility,
+    onPaginationChange: setUserPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+  });
+
+  const deviceIds = React.useMemo<UniqueIdentifier[]>(
+    () => deviceData.map((d) => d.id),
+    [deviceData]
+  );
+  const deviceTable = useReactTable({
+    data: deviceData,
+    columns: deviceColumns,
+    state: {
+      sorting: deviceSorting,
+      columnVisibility: deviceColumnVisibility,
+      rowSelection: deviceRowSelection,
+      columnFilters: deviceColumnFilters,
+      pagination: devicePagination,
+    },
+    getRowId: (row) => row.id.toString(),
+    enableRowSelection: true,
+    onRowSelectionChange: setDeviceRowSelection,
+    onSortingChange: setDeviceSorting,
+    onColumnFiltersChange: setDeviceColumnFilters,
+    onColumnVisibilityChange: setDeviceColumnVisibility,
+    onPaginationChange: setDevicePagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -386,9 +430,9 @@ export function DataTable({
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (active && over && active.id !== over.id) {
-      setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id);
-        const newIndex = dataIds.indexOf(over.id);
+      setUserData((data) => {
+        const oldIndex = userIds.indexOf(active.id);
+        const newIndex = userIds.indexOf(over.id);
         return arrayMove(data, oldIndex, newIndex);
       });
     }
@@ -436,14 +480,20 @@ export function DataTable({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              {table
+              {userTable
                 .getAllColumns()
                 .filter(
                   (column) =>
                     typeof column.accessorFn !== "undefined" &&
-                    column.getCanHide()
+                    column.getCanHide() &&
+                    !["username", "role"].includes(column.id) // exclude these
                 )
                 .map((column) => {
+                  const label = column.id
+                    .split("_")
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" ");
+
                   return (
                     <DropdownMenuCheckboxItem
                       key={column.id}
@@ -453,7 +503,7 @@ export function DataTable({
                         column.toggleVisibility(!!value)
                       }
                     >
-                      {column.id}
+                      {label}
                     </DropdownMenuCheckboxItem>
                   );
                 })}
@@ -475,11 +525,10 @@ export function DataTable({
             modifiers={[restrictToVerticalAxis]}
             onDragEnd={handleDragEnd}
             sensors={sensors}
-            id={sortableId}
           >
             <Table>
               <TableHeader className="bg-muted sticky top-0 z-10">
-                {table.getHeaderGroups().map((headerGroup) => (
+                {userTable.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => {
                       return (
@@ -497,19 +546,19 @@ export function DataTable({
                 ))}
               </TableHeader>
               <TableBody className="**:data-[slot=table-cell]:first:w-8">
-                {table.getRowModel().rows?.length ? (
+                {userTable.getRowModel().rows?.length ? (
                   <SortableContext
-                    items={dataIds}
+                    items={userIds}
                     strategy={verticalListSortingStrategy}
                   >
-                    {table.getRowModel().rows.map((row) => (
+                    {userTable.getRowModel().rows.map((row) => (
                       <DraggableRow key={row.id} row={row} />
                     ))}
                   </SortableContext>
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={columns.length}
+                      colSpan={userColumns.length}
                       className="h-24 text-center"
                     >
                       No results.
@@ -522,8 +571,8 @@ export function DataTable({
         </div>
         <div className="flex items-center justify-between px-4">
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
+            {/* {userTable.getFilteredSelectedRowModel().rows.length} of{" "} */}
+            {userTable.getFilteredRowModel().rows.length} row(s).
           </div>
           <div className="flex w-full items-center gap-8 lg:w-fit">
             <div className="hidden items-center gap-2 lg:flex">
@@ -531,14 +580,14 @@ export function DataTable({
                 Rows per page
               </Label>
               <Select
-                value={`${table.getState().pagination.pageSize}`}
+                value={`${userTable.getState().pagination.pageSize}`}
                 onValueChange={(value) => {
-                  table.setPageSize(Number(value));
+                  userTable.setPageSize(Number(value));
                 }}
               >
                 <SelectTrigger size="sm" className="w-20" id="rows-per-page">
                   <SelectValue
-                    placeholder={table.getState().pagination.pageSize}
+                    placeholder={userTable.getState().pagination.pageSize}
                   />
                 </SelectTrigger>
                 <SelectContent side="top">
@@ -551,15 +600,15 @@ export function DataTable({
               </Select>
             </div>
             <div className="flex w-fit items-center justify-center text-sm font-medium">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
+              Page {userTable.getState().pagination.pageIndex + 1} of{" "}
+              {userTable.getPageCount()}
             </div>
             <div className="ml-auto flex items-center gap-2 lg:ml-0">
               <Button
                 variant="outline"
                 className="hidden h-8 w-8 p-0 lg:flex"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
+                onClick={() => userTable.setPageIndex(0)}
+                disabled={!userTable.getCanPreviousPage()}
               >
                 <span className="sr-only">Go to first page</span>
                 <IconChevronsLeft />
@@ -568,8 +617,8 @@ export function DataTable({
                 variant="outline"
                 className="size-8"
                 size="icon"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
+                onClick={() => userTable.previousPage()}
+                disabled={!userTable.getCanPreviousPage()}
               >
                 <span className="sr-only">Go to previous page</span>
                 <IconChevronLeft />
@@ -578,8 +627,8 @@ export function DataTable({
                 variant="outline"
                 className="size-8"
                 size="icon"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
+                onClick={() => userTable.nextPage()}
+                disabled={!userTable.getCanNextPage()}
               >
                 <span className="sr-only">Go to next page</span>
                 <IconChevronRight />
@@ -588,8 +637,10 @@ export function DataTable({
                 variant="outline"
                 className="hidden size-8 lg:flex"
                 size="icon"
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage()}
+                onClick={() =>
+                  userTable.setPageIndex(userTable.getPageCount() - 1)
+                }
+                disabled={!userTable.getCanNextPage()}
               >
                 <span className="sr-only">Go to last page</span>
                 <IconChevronsRight />
@@ -598,8 +649,145 @@ export function DataTable({
           </div>
         </div>
       </TabsContent>
-      <TabsContent value="devices" className="flex flex-col px-4 lg:px-6">
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
+      <TabsContent
+        value="devices"
+        className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
+      >
+        <div className="overflow-hidden rounded-lg border">
+          <DndContext
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis]}
+            onDragEnd={handleDragEnd}
+            sensors={sensors}
+          >
+            <Table>
+              <TableHeader className="bg-muted sticky top-0 z-10">
+                {deviceTable.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id} colSpan={header.colSpan}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {deviceTable.getRowModel().rows?.length ? (
+                  <SortableContext
+                    items={deviceIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {deviceTable.getRowModel().rows.map((row) => (
+                      <DraggableRow key={row.id} row={row} />
+                    ))}
+                  </SortableContext>
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={deviceColumns.length}
+                      className="h-24 text-center"
+                    >
+                      No results.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </DndContext>
+        </div>
+
+        {/* Pagination and rows-per-page controls */}
+        <div className="flex items-center justify-between px-4">
+          <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
+            {deviceTable.getFilteredRowModel().rows.length} row(s).
+          </div>
+          <div className="flex w-full items-center gap-8 lg:w-fit">
+            <div className="hidden items-center gap-2 lg:flex">
+              <Label
+                htmlFor="device-rows-per-page"
+                className="text-sm font-medium"
+              >
+                Rows per page
+              </Label>
+              <Select
+                value={`${deviceTable.getState().pagination.pageSize}`}
+                onValueChange={(value) =>
+                  deviceTable.setPageSize(Number(value))
+                }
+              >
+                <SelectTrigger
+                  size="sm"
+                  className="w-20"
+                  id="device-rows-per-page"
+                >
+                  <SelectValue
+                    placeholder={deviceTable.getState().pagination.pageSize}
+                  />
+                </SelectTrigger>
+                <SelectContent side="top">
+                  {[10, 20, 30, 40, 50].map((pageSize) => (
+                    <SelectItem key={pageSize} value={`${pageSize}`}>
+                      {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex w-fit items-center justify-center text-sm font-medium">
+              Page {deviceTable.getState().pagination.pageIndex + 1} of{" "}
+              {deviceTable.getPageCount()}
+            </div>
+            <div className="ml-auto flex items-center gap-2 lg:ml-0">
+              <Button
+                variant="outline"
+                className="hidden h-8 w-8 p-0 lg:flex"
+                onClick={() => deviceTable.setPageIndex(0)}
+                disabled={!deviceTable.getCanPreviousPage()}
+              >
+                <span className="sr-only">Go to first page</span>
+                <IconChevronsLeft />
+              </Button>
+              <Button
+                variant="outline"
+                className="size-8"
+                size="icon"
+                onClick={() => deviceTable.previousPage()}
+                disabled={!deviceTable.getCanPreviousPage()}
+              >
+                <span className="sr-only">Go to previous page</span>
+                <IconChevronLeft />
+              </Button>
+              <Button
+                variant="outline"
+                className="size-8"
+                size="icon"
+                onClick={() => deviceTable.nextPage()}
+                disabled={!deviceTable.getCanNextPage()}
+              >
+                <span className="sr-only">Go to next page</span>
+                <IconChevronRight />
+              </Button>
+              <Button
+                variant="outline"
+                className="hidden size-8 lg:flex"
+                size="icon"
+                onClick={() =>
+                  deviceTable.setPageIndex(deviceTable.getPageCount() - 1)
+                }
+                disabled={!deviceTable.getCanNextPage()}
+              >
+                <span className="sr-only">Go to last page</span>
+                <IconChevronsRight />
+              </Button>
+            </div>
+          </div>
+        </div>
       </TabsContent>
       <TabsContent value="groups" className="flex flex-col px-4 lg:px-6">
         <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
@@ -633,162 +821,3 @@ const chartConfig = {
     color: "var(--primary)",
   },
 } satisfies ChartConfig;
-
-function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
-  const isMobile = useIsMobile();
-
-  return (
-    <Drawer direction={isMobile ? "bottom" : "right"}>
-      <DrawerTrigger asChild>
-        <Button variant="link" className="text-foreground w-fit px-0 text-left">
-          {item.header}
-        </Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader className="gap-1">
-          <DrawerTitle>{item.header}</DrawerTitle>
-          <DrawerDescription>
-            Showing total visitors for the last 6 months
-          </DrawerDescription>
-        </DrawerHeader>
-        <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
-          {!isMobile && (
-            <>
-              <ChartContainer config={chartConfig}>
-                <AreaChart
-                  accessibilityLayer
-                  data={chartData}
-                  margin={{
-                    left: 0,
-                    right: 10,
-                  }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => value.slice(0, 3)}
-                    hide
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="dot" />}
-                  />
-                  <Area
-                    dataKey="mobile"
-                    type="natural"
-                    fill="var(--color-mobile)"
-                    fillOpacity={0.6}
-                    stroke="var(--color-mobile)"
-                    stackId="a"
-                  />
-                  <Area
-                    dataKey="desktop"
-                    type="natural"
-                    fill="var(--color-desktop)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-desktop)"
-                    stackId="a"
-                  />
-                </AreaChart>
-              </ChartContainer>
-              <Separator />
-              <div className="grid gap-2">
-                <div className="flex gap-2 leading-none font-medium">
-                  Trending up by 5.2% this month{" "}
-                  <IconTrendingUp className="size-4" />
-                </div>
-                <div className="text-muted-foreground">
-                  Showing total visitors for the last 6 months. This is just
-                  some random text to test the layout. It spans multiple lines
-                  and should wrap around.
-                </div>
-              </div>
-              <Separator />
-            </>
-          )}
-          <form className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3">
-              <Label htmlFor="header">Header</Label>
-              <Input id="header" defaultValue={item.header} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="type">Type</Label>
-                <Select defaultValue={item.type}>
-                  <SelectTrigger id="type" className="w-full">
-                    <SelectValue placeholder="Select a type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Table of Contents">
-                      Table of Contents
-                    </SelectItem>
-                    <SelectItem value="Executive Summary">
-                      Executive Summary
-                    </SelectItem>
-                    <SelectItem value="Technical Approach">
-                      Technical Approach
-                    </SelectItem>
-                    <SelectItem value="Design">Design</SelectItem>
-                    <SelectItem value="Capabilities">Capabilities</SelectItem>
-                    <SelectItem value="Focus Documents">
-                      Focus Documents
-                    </SelectItem>
-                    <SelectItem value="Narrative">Narrative</SelectItem>
-                    <SelectItem value="Cover Page">Cover Page</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="status">Status</Label>
-                <Select defaultValue={item.status}>
-                  <SelectTrigger id="status" className="w-full">
-                    <SelectValue placeholder="Select a status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Done">Done</SelectItem>
-                    <SelectItem value="In Progress">In Progress</SelectItem>
-                    <SelectItem value="Not Started">Not Started</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="target">Target</Label>
-                <Input id="target" defaultValue={item.target} />
-              </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="limit">Limit</Label>
-                <Input id="limit" defaultValue={item.limit} />
-              </div>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Label htmlFor="reviewer">Reviewer</Label>
-              <Select defaultValue={item.reviewer}>
-                <SelectTrigger id="reviewer" className="w-full">
-                  <SelectValue placeholder="Select a reviewer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-                  <SelectItem value="Jamik Tashpulatov">
-                    Jamik Tashpulatov
-                  </SelectItem>
-                  <SelectItem value="Emily Whalen">Emily Whalen</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </form>
-        </div>
-        <DrawerFooter>
-          <Button>Submit</Button>
-          <DrawerClose asChild>
-            <Button variant="outline">Done</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  );
-}

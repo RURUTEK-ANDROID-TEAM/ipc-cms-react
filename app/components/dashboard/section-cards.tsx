@@ -11,7 +11,7 @@ export function SectionCards() {
       try {
         const token = localStorage.getItem("accessToken");
 
-        const res = await fetch("http://localhost:5000/api/cameras", {
+        const res = await fetch("http://172.16.0.157:5000/api/cameras", {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
