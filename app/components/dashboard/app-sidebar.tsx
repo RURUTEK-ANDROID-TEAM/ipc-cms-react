@@ -1,4 +1,5 @@
 import {
+  IconAdjustments,
   IconAlertHexagon,
   IconArrowBackUp,
   IconCamera,
@@ -12,7 +13,6 @@ import {
   IconInnerShadowTop,
   IconReport,
   IconSettings,
-  IconUsers,
   IconVideo,
 } from "@tabler/icons-react";
 import {
@@ -66,9 +66,9 @@ const data = {
       icon: IconAlertHexagon,
     },
     {
-      title: "Users",
-      url: "#",
-      icon: IconUsers,
+      title: "Management",
+      url: "/dashboard/management",
+      icon: IconAdjustments,
     },
   ],
   navClouds: [

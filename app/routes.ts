@@ -12,6 +12,7 @@ export default [
   ]),
   route("dashboard", "routes/dashboard/dashboard-layout.tsx", [
     index("routes/dashboard/dashboard.tsx"), // "/dashboard"
-    route("live-view", "routes/dashboard/live-view.tsx"),
+    route("live-view", "routes/dashboard/live-view.tsx"), // "/dashboard/live-view"
+    route("management", "routes/dashboard/management.tsx"), // "/dashboard/users"
   ]),
 ] satisfies RouteConfig;

@@ -19,7 +19,7 @@ const STUN_TURN_CONFIG: RTCConfiguration = {
   ],
 };
 
-const CAMERA_UIDS = ["RI35293585543679"];
+const CAMERA_UIDS = ["RI35293585543679", "RI35293585543679"];
 
 const LiveView = () => {
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
