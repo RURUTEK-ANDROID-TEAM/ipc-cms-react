@@ -1,27 +1,28 @@
-import { IconCirclePlusFilled, IconMail, type Icon } from "@tabler/icons-react"
+import { IconCirclePlusFilled, IconMail, type Icon } from "@tabler/icons-react";
 
 import {
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { Button } from "../ui/button"
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { Button } from "../ui/button";
+import { NavLink } from "react-router";
 
 export function NavMain({
-    items
+  items,
 }: {
-    items: {
-        title: string
-        url: string
-        icon?: Icon
-    }[]
+  items: {
+    title: string;
+    url: string;
+    icon?: Icon;
+  }[];
 }) {
-    return (
-        <SidebarGroup>
-            <SidebarGroupContent className="flex flex-col gap-2">
-                {/* <SidebarMenu>
+  return (
+    <SidebarGroup>
+      <SidebarGroupContent className="flex flex-col gap-2">
+        {/* <SidebarMenu>
                     <SidebarMenuItem className="flex items-center gap-2">
                         <SidebarMenuButton
                             tooltip="Quick Create"
@@ -40,17 +41,28 @@ export function NavMain({
                         </Button>
                     </SidebarMenuItem>
                 </SidebarMenu> */}
-                <SidebarMenu >
-                    {items.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton tooltip={item.title} >
-                                {item.icon && (<item.icon />)}
-                                <span >{item.title}</span>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    ))}
-                </SidebarMenu>
-            </SidebarGroupContent>
-        </SidebarGroup>
-    )
+        <SidebarMenu>
+          {items.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton asChild tooltip={item.title}>
+                <NavLink
+                  to={item.url}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 ${
+                      isActive
+                        ? "text-primary font-semibold"
+                        : "text-muted-foreground"
+                    }`
+                  }
+                >
+                  {item.icon && <item.icon className="size-4" />}
+                  <span>{item.title}</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
 }

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,7 +11,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { toast } from "sonner";
 
 export function LoginForm({
   className,
@@ -18,6 +21,7 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,15 +42,18 @@ export function LoginForm({
       const data = await res.json();
 
       if (!res.ok) {
-        alert("Login Failed");
+        toast.error("Login Failed");
         throw new Error(data.message || "Login Failed");
       }
 
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
       localStorage.setItem("user", JSON.stringify(data.user));
+      toast.success("Login successful 🎉");
 
-      alert("Login Successful");
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1000);
     } catch (error: any) {
       setError(error.message);
     } finally {
