@@ -1,81 +1,80 @@
 import { DataTable } from "@/components/dashboard/data-table";
-import { useEffect, useState } from "react";
-import data from "./data.json";
+import { useEffect, useState, type FC, type JSX } from "react";
 
-const Management = () => {
-  const [users, setUsers] = useState([]);
-  const [devices, setDevices] = useState([]);
-  const [groups, setGroups] = useState([]);
+interface ManagementProps {
+  hideUsersTable?: boolean;
+}
+
+const Management: FC<ManagementProps> = ({
+  hideUsersTable = false,
+}): JSX.Element => {
+  const [users, setUsers] = useState<any[]>([]);
+  const [devices, setDevices] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const API_URL = "http://172.16.0.157:5000/api";
+
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem("accessToken");
+        if (!token) throw new Error("No access token found");
 
-        const res = await fetch("http://172.16.0.157:5000/api/users", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const headers = { Authorization: `Bearer ${token}` };
+        const fetchPromises = [
+          fetch(`${API_URL}/cameras`, { headers }),
+          fetch(`${API_URL}/groups`, { headers }),
+        ];
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch users");
+        if (!hideUsersTable) {
+          fetchPromises.unshift(fetch(`${API_URL}/users`, { headers }));
         }
 
-        const users = await res.json();
-        setUsers(users);
+        const responses = await Promise.all(fetchPromises);
+        const data = await Promise.all(responses.map((r) => r.json()));
+
+        if (!hideUsersTable) {
+          setUsers(data[0]);
+          setDevices(data[1]);
+          setGroups(data[2]);
+        } else {
+          setUsers([]);
+          setDevices(data[0]);
+          setGroups(data[1]);
+        }
       } catch (error) {
-        console.error(error);
+        console.error("Fetch error:", error);
         setUsers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    const fetchDevices = async () => {
-      try {
-        const token = localStorage.getItem("accessToken");
-
-        const res = await fetch("http://172.16.0.157:5000/api/cameras", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch users");
-        }
-
-        const cameras = await res.json();
-        setDevices(cameras);
-      } catch (error) {
-        console.error(error);
         setDevices([]);
+        setGroups([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDevices();
-  }, []);
+    fetchData();
+  }, [hideUsersTable]);
 
-  return loading ? (
-    <div className="flex items-center justify-center h-[80vh]">
-      {loading ? (
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
         <div className="flex flex-col items-center justify-center gap-2">
           <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : null}
-    </div>
-  ) : (
-    <DataTable users={users} devices={devices} />
+      </div>
+    );
+  }
+
+  console.log("Hide Users Table: ", hideUsersTable);
+
+  return (
+    <DataTable
+      users={users}
+      devices={devices}
+      groups={groups}
+      hideUsersTable={hideUsersTable}
+    />
   );
 };
 
