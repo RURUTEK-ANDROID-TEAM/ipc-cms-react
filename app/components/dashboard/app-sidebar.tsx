@@ -158,14 +158,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="data-[slot=sidebar-menu-button]:!p-2"
             >
               <a href="#">
-                <IconInnerShadowTop className="!size-5" />
+                <img
+                  src="/rurutek_logo.png"
+                  alt="Rurutek Logo"
+                  className="w-8 h-auto mb-2 mt-2"
+                />
                 <span className="text-base font-semibold">
-                  Rurutek Private Limited
+                  Ruru Tek Private Limited
                 </span>
               </a>
+              {/* <a href="#">
+                <img
+                  src="/rurutek_logo.png"
+                  alt="Rurutek Logo"
+                  className="m-auto size-auto"
+                /> */}
+              {/* <IconInnerShadowTop className="!size-5" /> */}
+
+              {/* </a> */}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
