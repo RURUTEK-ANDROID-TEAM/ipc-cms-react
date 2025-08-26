@@ -5,6 +5,12 @@ import { Skeleton } from "../ui/skeleton";
 
 export function SectionCards() {
   const [totalCameraCount, setTotalCameraCount] = useState<number | null>(null);
+  const [onlineCamerasCount, setOnlineCamerasCount] = useState<number | null>(
+    null
+  );
+  const [offlineCamerasCount, setOfflineCamerasCount] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchCameras = async () => {
@@ -33,7 +39,21 @@ export function SectionCards() {
     };
 
     fetchCameras();
-  }, []);
+
+    const ws = new WebSocket("ws://172.16.0.157:5001/camdata");
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === "camera_status") {
+        setOnlineCamerasCount(msg.total); // total online
+        if (totalCameraCount !== null) {
+          setOfflineCamerasCount(totalCameraCount - msg.total); // offline = total - online
+        }
+      }
+    };
+
+    return () => ws.close();
+  }, [totalCameraCount]);
 
   return (
     <div className="*:data-[slot=card]:from-primary/0 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-3">
@@ -59,7 +79,11 @@ export function SectionCards() {
             <Video className="h-6 w-6 text-green-500" />
           </div>
           <CardTitle className="mt-2 text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            12
+            {onlineCamerasCount !== null ? (
+              <span>{onlineCamerasCount}</span>
+            ) : (
+              <Skeleton className="h-9 w-9" />
+            )}
           </CardTitle>
         </CardHeader>
       </Card>
@@ -70,7 +94,11 @@ export function SectionCards() {
             <VideoOffIcon className="h-6 w-6 text-red-500" />
           </div>
           <CardTitle className="mt-2 text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            12
+            {offlineCamerasCount !== null ? (
+              <span>{offlineCamerasCount}</span>
+            ) : (
+              <Skeleton className="h-9 w-9" />
+            )}
           </CardTitle>
         </CardHeader>
       </Card>

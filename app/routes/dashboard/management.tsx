@@ -11,9 +11,11 @@ const Management: FC<ManagementProps> = ({
   const [users, setUsers] = useState<any[]>([]);
   const [devices, setDevices] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
+  const [onlineUIDs, setOnlineUIDs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const API_URL = "http://172.16.0.157:5000/api";
+  const WS_URL = "ws://172.16.0.157:5001/camdata";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,6 +57,35 @@ const Management: FC<ManagementProps> = ({
 
     fetchData();
   }, [hideUsersTable]);
+
+  useEffect(() => {
+    const ws = new WebSocket(WS_URL);
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "camera_status") {
+          setOnlineUIDs(msg.online || []);
+        }
+      } catch (err) {
+        console.error("WebSocket message parse error:", err);
+      }
+    };
+
+    ws.onopen = () => console.log("Camera WebSocket connected");
+    ws.onclose = () => console.log("Camera WebSocket disconnected");
+
+    return () => ws.close();
+  }, []);
+
+  useEffect(() => {
+    setDevices((prev) =>
+      prev.map((device) => ({
+        ...device,
+        status: onlineUIDs.includes(device.uid),
+      }))
+    );
+  }, [onlineUIDs]);
 
   if (loading) {
     return (

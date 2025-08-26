@@ -1,4 +1,3 @@
-import * as React from "react";
 import {
   closestCenter,
   DndContext,
@@ -220,6 +219,18 @@ const deviceColumns: ColumnDef<z.infer<typeof deviceSchema>>[] = [
   { accessorKey: "model", header: "Model" },
   { accessorKey: "manufacturer", header: "Manufacturer" },
   { accessorKey: "serial_number", header: "Serial Number" },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ getValue }) => {
+      const online = getValue<boolean>();
+      return online ? (
+        <Badge variant={"default"}>Online</Badge>
+      ) : (
+        <Badge variant={"destructive"}>Offline</Badge>
+      );
+    },
+  },
   {
     accessorKey: "assigned_at",
     header: "Assigned At",
@@ -622,8 +633,21 @@ export function DataTable({
           {tabOptions.map((tab) => (
             <TabsTrigger key={tab} value={tab}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              {tab === "devices" && <Badge variant="secondary">3</Badge>}
-              {tab === "groups" && <Badge variant="secondary">2</Badge>}
+              {tab === "users" && (
+                <Badge variant="secondary">
+                  {tables.users.getFilteredRowModel().rows.length}
+                </Badge>
+              )}
+              {tab === "devices" && (
+                <Badge variant="secondary">
+                  {tables.devices.getFilteredRowModel().rows.length}
+                </Badge>
+              )}
+              {tab === "groups" && (
+                <Badge variant="secondary">
+                  {tables.groups.getFilteredRowModel().rows.length}
+                </Badge>
+              )}
             </TabsTrigger>
           ))}
         </TabsList>

@@ -1,13 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type PeerConnections = {
   [uid: string]: RTCPeerConnection;
 };
 
 const SIGNALING_URL = "ws://172.16.0.103:9595";
+const DASHBOARD_WS_URL = "ws://172.16.0.157:5001/camdata";
+
 const STUN_TURN_CONFIG: RTCConfiguration = {
   iceServers: [
     { urls: "stun:172.16.0.147:3478" },
@@ -19,24 +21,38 @@ const STUN_TURN_CONFIG: RTCConfiguration = {
   ],
 };
 
-const CAMERA_UIDS = ["RI35293585543679", "RI35293585543679"];
-
 const LiveView = () => {
-  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const [cameraUIDs, setCameraUIDs] = useState<string[]>([]);
+  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const peerConnections = useRef<PeerConnections>({});
-  const wsRef = useRef<WebSocket | null>(null);
+  const signalingWS = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket(SIGNALING_URL);
-    wsRef.current = ws;
+    // Dashboard WS: Track online cameras
+    const camDataWS = new WebSocket(DASHBOARD_WS_URL);
 
-    ws.onopen = () => {
-      console.log("WebSocket connected");
-      CAMERA_UIDS.forEach((uid, i) => {
-        setTimeout(() => initializePeerConnection(uid, i), 500 * i);
-      });
+    camDataWS.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === "camera_status") {
+        const newUIDs = msg.online || [];
+        setCameraUIDs(newUIDs);
+
+        // Clean up disconnected cameras
+        Object.keys(peerConnections.current).forEach((uid) => {
+          if (!newUIDs.includes(uid)) {
+            peerConnections.current[uid]?.close();
+            delete peerConnections.current[uid];
+            videoRefs.current.delete(uid);
+          }
+        });
+      }
     };
 
+    // Signaling WS: WebRTC
+    const ws = new WebSocket(SIGNALING_URL);
+    signalingWS.current = ws;
+
+    ws.onopen = () => console.log("Signaling WebSocket connected");
     ws.onmessage = async (msg) => {
       let data: any;
       try {
@@ -47,23 +63,32 @@ const LiveView = () => {
       }
       handleSignal(data);
     };
-
-    ws.onclose = () => console.log("WebSocket closed");
-    ws.onerror = (err) => console.error("WebSocket error", err);
+    ws.onclose = () => console.log("Signaling WebSocket closed");
+    ws.onerror = (err) => console.error("Signaling WebSocket error", err);
 
     return () => {
+      camDataWS.close();
       ws.close();
       Object.values(peerConnections.current).forEach((pc) => pc.close());
     };
   }, []);
 
+  // Initialize peer connections for newly online cameras
+  useEffect(() => {
+    cameraUIDs.forEach((uid) => {
+      if (!peerConnections.current[uid]) {
+        initializePeerConnection(uid);
+      }
+    });
+  }, [cameraUIDs]);
+
   const sendSignal = (signal: any) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(signal));
+    if (signalingWS.current?.readyState === WebSocket.OPEN) {
+      signalingWS.current.send(JSON.stringify(signal));
     }
   };
 
-  const initializePeerConnection = async (uid: string, index: number) => {
+  const initializePeerConnection = async (uid: string) => {
     const pc = new RTCPeerConnection(STUN_TURN_CONFIG);
     peerConnections.current[uid] = pc;
 
@@ -78,7 +103,7 @@ const LiveView = () => {
     };
 
     pc.ontrack = (event) => {
-      const videoEl = videoRefs.current[index];
+      const videoEl = videoRefs.current.get(uid);
       if (videoEl) {
         videoEl.srcObject = event.streams[0];
       }
@@ -117,20 +142,11 @@ const LiveView = () => {
           console.warn("ICE candidate error", err);
         }
         break;
-
       case "webrtc/answer":
-        try {
-          if (pc.signalingState !== "stable") {
-            await pc.setRemoteDescription({
-              type: "answer",
-              sdp: data.value,
-            });
-          }
-        } catch (err) {
-          console.error("Set remote description error", err);
+        if (pc.signalingState !== "stable") {
+          await pc.setRemoteDescription({ type: "answer", sdp: data.value });
         }
         break;
-
       case "error":
         console.error("Server error:", data);
         break;
@@ -141,14 +157,14 @@ const LiveView = () => {
     <Card className="shadow-none border-0">
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          {CAMERA_UIDS.map((uid, i) => (
+          {cameraUIDs.map((uid) => (
             <div
               key={uid}
               className="aspect-video bg-black flex items-center justify-center rounded-md"
             >
               <video
                 ref={(el) => {
-                  videoRefs.current[i] = el;
+                  if (el) videoRefs.current.set(uid, el);
                 }}
                 autoPlay
                 playsInline
