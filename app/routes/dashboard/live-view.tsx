@@ -18,6 +18,11 @@ const STUN_TURN_CONFIG: RTCConfiguration = {
       username: "rurutek",
       credential: "ruru@123",
     },
+    {
+      urls: "turn:172.16.0.147:5349?transport=tcp",
+      username: "rurutek",
+      credential: "ruru@123",
+    },
   ],
 };
 
@@ -26,74 +31,115 @@ const LiveView = () => {
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const peerConnections = useRef<PeerConnections>({});
   const signalingWS = useRef<WebSocket | null>(null);
+  const messageQueue = useRef<any[]>([]);
+  const pendingCandidates = useRef<{ [uid: string]: RTCIceCandidateInit[] }>(
+    {}
+  );
+
+  const flushQueue = () => {
+    if (signalingWS.current?.readyState === WebSocket.OPEN) {
+      messageQueue.current.forEach((msg) =>
+        signalingWS.current!.send(JSON.stringify(msg))
+      );
+      messageQueue.current = [];
+    }
+  };
+
+  const sendSignal = (signal: any) => {
+    if (signalingWS.current?.readyState === WebSocket.OPEN) {
+      // Ensure signal is sent as a valid UTF-8 JSON string
+      try {
+        const message = JSON.stringify(signal);
+        signalingWS.current.send(message);
+      } catch (error) {
+        console.error("Error stringifying signal:", error, signal);
+      }
+    } else {
+      console.warn("WS not open, queue signal", signal);
+      messageQueue.current.push(signal);
+    }
+  };
+
+  const connectSignalingWS = () => {
+    const ws = new WebSocket(SIGNALING_URL);
+    ws.binaryType = "arraybuffer"; // Set to handle binary data
+    signalingWS.current = ws;
+
+    ws.onopen = () => {
+      console.log("✅ Signaling WebSocket connected");
+      flushQueue();
+    };
+
+    ws.onmessage = async (msg) => {
+      let data;
+      try {
+        if (msg.data instanceof ArrayBuffer) {
+          // Decode ArrayBuffer to UTF-8 string
+          data = JSON.parse(new TextDecoder("utf-8").decode(msg.data));
+        } else if (msg.data instanceof Blob) {
+          // Convert Blob to text
+          data = JSON.parse(await msg.data.text());
+        } else if (typeof msg.data === "string") {
+          // Parse string directly
+          data = JSON.parse(msg.data);
+        } else {
+          console.error("Unsupported WebSocket message type:", typeof msg.data);
+          return;
+        }
+        handleWebSocketMessage(data);
+      } catch (err) {
+        console.error("❌ Error processing WebSocket message:", err, msg.data);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log("⚠️ Signaling WebSocket closed, reconnecting...");
+      setTimeout(connectSignalingWS, 5000);
+    };
+
+    ws.onerror = (err) => console.error("❌ Signaling WebSocket error:", err);
+  };
 
   useEffect(() => {
-    // Dashboard WS: Track online cameras
     const camDataWS = new WebSocket(DASHBOARD_WS_URL);
 
     camDataWS.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.type === "camera_status") {
-        const newUIDs = msg.online || [];
-        setCameraUIDs(newUIDs);
-
-        // Clean up disconnected cameras
-        Object.keys(peerConnections.current).forEach((uid) => {
-          if (!newUIDs.includes(uid)) {
-            peerConnections.current[uid]?.close();
-            delete peerConnections.current[uid];
-            videoRefs.current.delete(uid);
-          }
-        });
-      }
-    };
-
-    // Signaling WS: WebRTC
-    const ws = new WebSocket(SIGNALING_URL);
-    signalingWS.current = ws;
-
-    ws.onopen = () => console.log("Signaling WebSocket connected");
-    ws.onmessage = async (msg) => {
-      let data: any;
       try {
-        data = JSON.parse(msg.data);
-      } catch {
-        console.error("Invalid signaling message", msg.data);
-        return;
+        const msg = JSON.parse(event.data);
+        if (msg.type === "camera_status") {
+          const newUIDs: string[] = msg.online || [];
+          setCameraUIDs(newUIDs);
+
+          Object.keys(peerConnections.current).forEach((uid) => {
+            if (!newUIDs.includes(uid)) {
+              peerConnections.current[uid]?.close();
+              delete peerConnections.current[uid];
+              videoRefs.current.delete(uid);
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Error processing camera status:", err);
       }
-      handleSignal(data);
     };
-    ws.onclose = () => console.log("Signaling WebSocket closed");
-    ws.onerror = (err) => console.error("Signaling WebSocket error", err);
+
+    connectSignalingWS();
 
     return () => {
       camDataWS.close();
-      ws.close();
+      signalingWS.current?.close();
       Object.values(peerConnections.current).forEach((pc) => pc.close());
     };
   }, []);
 
-  // Initialize peer connections for newly online cameras
-  useEffect(() => {
-    cameraUIDs.forEach((uid) => {
-      if (!peerConnections.current[uid]) {
-        initializePeerConnection(uid);
-      }
-    });
-  }, [cameraUIDs]);
-
-  const sendSignal = (signal: any) => {
-    if (signalingWS.current?.readyState === WebSocket.OPEN) {
-      signalingWS.current.send(JSON.stringify(signal));
-    }
-  };
-
-  const initializePeerConnection = async (uid: string) => {
+  const initializePeerConnection = (uid: string) => {
+    console.log("🔗 Initializing PeerConnection for", uid);
     const pc = new RTCPeerConnection(STUN_TURN_CONFIG);
     peerConnections.current[uid] = pc;
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log("📤 Sending ICE candidate for", uid);
         sendSignal({
           type: "webrtc/candidate",
           value: event.candidate.candidate,
@@ -103,55 +149,172 @@ const LiveView = () => {
     };
 
     pc.ontrack = (event) => {
-      const videoEl = videoRefs.current.get(uid);
-      if (videoEl) {
-        videoEl.srcObject = event.streams[0];
+      console.log("🎥 Received track for", uid);
+      let video = videoRefs.current.get(uid);
+      if (!video) {
+        video = document.createElement("video");
+        video.id = uid;
+        video.controls = false;
+        video.autoplay = true;
+        video.muted = true;
+        video.style.width = "100%";
+        video.style.height = "100%";
+        video.style.objectFit = "fill";
+        videoRefs.current.set(uid, video);
+        const streamContainer = document.getElementById(
+          `streamContainer-${uid}`
+        );
+        if (streamContainer) {
+          streamContainer.innerHTML = "";
+          streamContainer.appendChild(video);
+        }
+      }
+      if (event.streams[0]) {
+        video.srcObject = event.streams[0];
+        video.play().catch((e) => console.error("play() failed:", e));
       }
     };
 
-    const offer = await pc.createOffer({
-      offerToReceiveAudio: true,
-      offerToReceiveVideo: true,
-    });
-    await pc.setLocalDescription(offer);
-    sendSignal({
-      type: "webrtc/offer",
-      value: offer.sdp,
-      uid: "cus-" + uid,
-    });
+    pc.oniceconnectionstatechange = () => {
+      console.log("ICE", uid, "->", pc.iceConnectionState);
+      if (pc.iceConnectionState === "failed") {
+        console.warn("ICE failed, restarting for", uid);
+        pc.restartIce();
+      }
+    };
+
+    createOffer(uid);
   };
 
-  const handleSignal = async (data: any) => {
+  const createOffer = async (uid: string) => {
+    const pc = peerConnections.current[uid];
+    if (!pc) {
+      console.error("No PeerConnection for", uid);
+      return;
+    }
+
+    try {
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+      });
+      await pc.setLocalDescription(offer);
+      console.log("📤 Sending offer for", uid);
+      sendSignal({
+        type: "webrtc/offer",
+        value: offer.sdp,
+        uid: "cus-" + uid,
+      });
+    } catch (error) {
+      console.error("Error creating offer for", uid, error);
+    }
+  };
+
+  const handleWebSocketMessage = async (data: any) => {
     const uid = data.uid?.replace("cus-", "").replace("ser-", "");
-    if (!uid) return;
+    if (!uid) {
+      console.warn("No UID in message", data);
+      return;
+    }
 
     const pc = peerConnections.current[uid];
-    if (!pc) return;
+    if (!pc) {
+      console.warn("No PeerConnection for", uid);
+      return;
+    }
 
     switch (data.type) {
       case "webrtc/candidate":
         try {
-          await pc.addIceCandidate(
-            new RTCIceCandidate({
+          console.log("📥 Adding ICE candidate for", uid);
+          if (pc.remoteDescription) {
+            await pc.addIceCandidate(
+              new RTCIceCandidate({
+                candidate: data.value,
+                sdpMid: "0",
+                sdpMLineIndex: 0,
+              })
+            );
+          } else {
+            if (!pendingCandidates.current[uid]) {
+              pendingCandidates.current[uid] = [];
+            }
+            pendingCandidates.current[uid].push({
               candidate: data.value,
               sdpMid: "0",
               sdpMLineIndex: 0,
-            })
-          );
-        } catch (err) {
-          console.warn("ICE candidate error", err);
+            });
+          }
+        } catch (error) {
+          console.warn("Error adding ICE candidate for", uid, error);
         }
         break;
+
       case "webrtc/answer":
-        if (pc.signalingState !== "stable") {
-          await pc.setRemoteDescription({ type: "answer", sdp: data.value });
+        try {
+          if (pc.signalingState !== "stable") {
+            console.log("📥 Setting remote description for", uid);
+            await pc.setRemoteDescription({
+              type: "answer",
+              sdp: data.value,
+            });
+            if (pendingCandidates.current[uid]) {
+              for (const cand of pendingCandidates.current[uid]) {
+                await pc.addIceCandidate(new RTCIceCandidate(cand));
+              }
+              delete pendingCandidates.current[uid];
+            }
+          } else {
+            console.warn("Ignoring answer in stable state for", uid);
+          }
+        } catch (error) {
+          console.warn("Error setting remote description for", uid, error);
         }
         break;
+
       case "error":
-        console.error("Server error:", data);
+        console.error("Server error for", uid, data);
         break;
     }
   };
+
+  const changeStream = (streamType: string, uid: string) => {
+    console.log(`Changing stream to: ${streamType} for`, uid);
+    sendSignal({ type: "changeStream", value: streamType, uid: "cus-" + uid });
+  };
+
+  const addStream = (uid: string, streamType: string) => {
+    if (
+      !signalingWS.current ||
+      signalingWS.current.readyState !== WebSocket.OPEN
+    ) {
+      console.warn("WebSocket not open, initializing...");
+      connectSignalingWS();
+      setTimeout(() => {
+        if (!peerConnections.current[uid]) {
+          initializePeerConnection(uid);
+          setTimeout(() => changeStream(streamType, uid), 500);
+        } else {
+          changeStream(streamType, uid);
+        }
+      }, 500);
+    } else {
+      if (!peerConnections.current[uid]) {
+        initializePeerConnection(uid);
+        setTimeout(() => changeStream(streamType, uid), 500);
+      } else {
+        changeStream(streamType, uid);
+      }
+    }
+  };
+
+  useEffect(() => {
+    cameraUIDs.forEach((uid) => {
+      if (!peerConnections.current[uid]) {
+        addStream(uid, "main");
+      }
+    });
+  }, [cameraUIDs]);
 
   return (
     <Card className="shadow-none border-0">
@@ -160,21 +323,22 @@ const LiveView = () => {
           {cameraUIDs.map((uid) => (
             <div
               key={uid}
-              className="aspect-video bg-black flex items-center justify-center rounded-md"
+              className="relative aspect-video bg-black flex items-center justify-center rounded-md overflow-hidden"
             >
-              <video
-                ref={(el) => {
-                  if (el) videoRefs.current.set(uid, el);
-                }}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full rounded-md object-cover"
-              />
+              <div id={`streamContainer-${uid}`} className="w-full h-full">
+                <video
+                  ref={(el) => {
+                    if (el) videoRefs.current.set(uid, el);
+                  }}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full rounded-md object-cover"
+                />
+              </div>
             </div>
           ))}
         </div>
-
         <div className="flex justify-center gap-2">
           <Button size="icon" variant="outline">
             <ChevronLeft className="h-4 w-4" />
