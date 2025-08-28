@@ -170,15 +170,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   Ruru Tek Private Limited
                 </span>
               </a>
-              {/* <a href="#">
-                <img
-                  src="/rurutek_logo.png"
-                  alt="Rurutek Logo"
-                  className="m-auto size-auto"
-                /> */}
-              {/* <IconInnerShadowTop className="!size-5" /> */}
-
-              {/* </a> */}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -1,10 +1,22 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { SidebarMenuButton } from "@/components/ui/sidebar";
+import { Check, ChevronsUpDown, GalleryHorizontalEnd } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useOutletContext } from "react-router";
 
 type PeerConnections = {
   [uid: string]: RTCPeerConnection;
+};
+
+type HeaderContext = {
+  setHeader?: (title: string) => void;
+  setHeaderChild?: (child: React.ReactNode) => void;
 };
 
 const SIGNALING_URL = "ws://172.16.0.103:9595";
@@ -27,6 +39,8 @@ const STUN_TURN_CONFIG: RTCConfiguration = {
 };
 
 const LiveView = () => {
+  const context = useOutletContext<HeaderContext>();
+
   const [cameraUIDs, setCameraUIDs] = useState<string[]>([]);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const peerConnections = useRef<PeerConnections>({});
@@ -35,6 +49,19 @@ const LiveView = () => {
   const pendingCandidates = useRef<{ [uid: string]: RTCIceCandidateInit[] }>(
     {}
   );
+
+  const [viewLayout, setViewLayout] = useState<"2x2" | "3x3" | "4x4">("2x2");
+  const layoutToCols: { [key in "2x2" | "3x3" | "4x4"]: string } = {
+    "2x2": "grid-cols-2",
+    "3x3": "grid-cols-3",
+    "4x4": "grid-cols-4",
+  };
+
+  useEffect(() => {
+    if (context?.setHeader) {
+      context.setHeader("Live Camera View");
+    }
+  }, [context]);
 
   const flushQueue = () => {
     if (signalingWS.current?.readyState === WebSocket.OPEN) {
@@ -317,38 +344,79 @@ const LiveView = () => {
   }, [cameraUIDs]);
 
   return (
-    <Card className="shadow-none border-0">
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          {cameraUIDs.map((uid) => (
-            <div
-              key={uid}
-              className="relative aspect-video bg-black flex items-center justify-center rounded-md overflow-hidden"
+    <>
+      <div className="relative">
+        <div className="absolute top-0 right-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              >
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <GalleryHorizontalEnd className="size-4" />
+                </div>
+                <div className="flex gap-1 leading-none">
+                  <span className="font-medium">Layout</span>
+                  <span className="">{viewLayout}</span>
+                </div>
+                <ChevronsUpDown className="ml-auto" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-(--radix-dropdown-menu-trigger-width)"
+              align="start"
             >
-              <div id={`streamContainer-${uid}`} className="w-full h-full">
-                <video
-                  ref={(el) => {
-                    if (el) videoRefs.current.set(uid, el);
-                  }}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full rounded-md object-cover"
-                />
-              </div>
-            </div>
-          ))}
+              {Object.keys(layoutToCols).map((layout) => (
+                <DropdownMenuItem
+                  key={layout}
+                  onSelect={() =>
+                    setViewLayout(layout as "2x2" | "3x3" | "4x4")
+                  }
+                >
+                  {layout}{" "}
+                  {layout === viewLayout && <Check className="ml-auto" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <div className="flex justify-center gap-2">
+      </div>
+      <div className="flex flex-col gap-4 py-0 md:gap-4 md:py-0">
+        <Card className="shadow-none border-0">
+          <CardContent className="space-y-0.5">
+            <div className={`grid gap-4 ${layoutToCols[viewLayout]} `}>
+              {cameraUIDs.map((uid) => (
+                <div
+                  key={uid}
+                  className="relative aspect-video bg-black flex items-center justify-center rounded-md overflow-hidden"
+                >
+                  <div id={`streamContainer-${uid}`} className="w-full h-full">
+                    <video
+                      ref={(el) => {
+                        if (el) videoRefs.current.set(uid, el);
+                      }}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full rounded-md object-cover"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* <div className="flex justify-center gap-2">
           <Button size="icon" variant="outline">
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button size="icon" variant="outline">
             <ChevronRight className="h-4 w-4" />
           </Button>
-        </div>
-      </CardContent>
-    </Card>
+        </div> */}
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 };
 
