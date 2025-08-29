@@ -8,21 +8,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ChevronDownIcon } from "lucide-react";
 import { useRef, useState } from "react";
+import { useOutletContext } from "react-router";
 
 const Playback = () => {
-  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
-  const minutes = Array.from({ length: 60 }, (_, i) =>
-    i.toString().padStart(2, "0")
-  );
+  const context = useOutletContext<any>();
+  context.title = "Live View";
+  context.actions = <></>;
 
   const recordings = [
     {
@@ -41,9 +34,6 @@ const Playback = () => {
 
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>(undefined);
-  const [hour, setHour] = useState("10");
-  const [minute, setMinute] = useState("00");
-  const [ampm, setAmPm] = useState("AM");
 
   return (
     <div className="ml-4 mr-4">
@@ -78,57 +68,22 @@ const Playback = () => {
                 mode="single"
                 selected={date}
                 captionLayout="dropdown"
+                today={new Date()}
                 onSelect={(date) => {
                   setDate(date);
                   setOpen(false);
                 }}
+                disabled={{ after: new Date() }}
               />
             </PopoverContent>
           </Popover>
         </div>
-        <div className="flex flex-col gap-3">
-          <Label htmlFor="time-picker" className="px-1">
-            Time
-          </Label>
-          <div className="flex gap-2">
-            <Select value={hour} onValueChange={setHour}>
-              <SelectTrigger className="w-[70px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {hours.map((h) => (
-                  <SelectItem key={h} value={h.toString()}>
-                    {h}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={minute} onValueChange={setMinute}>
-              <SelectTrigger className="w-[70px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {minutes.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={ampm} onValueChange={setAmPm}>
-              <SelectTrigger className="w-[70px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AM">AM</SelectItem>
-                <SelectItem value="PM">PM</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
       </div>
-      <PlaybackTimeline videoRef={videoRef} recordings={recordings} />
+      <PlaybackTimeline
+        videoRef={videoRef}
+        recordings={recordings}
+        selectedDate={date}
+      />
     </div>
   );
 };

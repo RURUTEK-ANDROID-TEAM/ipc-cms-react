@@ -1,6 +1,10 @@
+import { useOutletContext } from "react-router";
 import Management from "./management";
 
-// This wrapper always enforces hideUsersTable={false}
 export default function ManagementWrapper() {
+  const context = useOutletContext<any>();
+  context.title = "Live View";
+  context.actions = <></>;
+
   return <Management hideUsersTable={false} />;
 }

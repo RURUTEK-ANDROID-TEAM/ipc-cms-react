@@ -1,27 +1,24 @@
-import { Card, CardContent } from "@/components/ui/card";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { SidebarMenuButton } from "@/components/ui/sidebar";
-import { Check, ChevronsUpDown, GalleryHorizontalEnd } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useOutletContext } from "react-router";
+import { Card, CardContent } from "@/components/ui/card";
+import { Video, Maximize } from "lucide-react";
+import { LayoutDropdown } from "@/components/live-view/layout-dropdown";
 
+type OutletHeaderSetter = {
+  setHeader?: (ctx: { title?: string; actions?: ReactNode | null }) => void;
+};
 type PeerConnections = {
   [uid: string]: RTCPeerConnection;
 };
 
-type HeaderContext = {
-  setHeader?: (title: string) => void;
-  setHeaderChild?: (child: React.ReactNode) => void;
-};
-
 const SIGNALING_URL = "ws://172.16.0.103:9595";
 const DASHBOARD_WS_URL = "ws://172.16.0.157:5001/camdata";
-
 const STUN_TURN_CONFIG: RTCConfiguration = {
   iceServers: [
     { urls: "stun:172.16.0.147:3478" },
@@ -39,7 +36,13 @@ const STUN_TURN_CONFIG: RTCConfiguration = {
 };
 
 const LiveView = () => {
-  const context = useOutletContext<HeaderContext>();
+  const outlet = useOutletContext<OutletHeaderSetter>();
+  const [viewLayout, setViewLayout] = useState<"2x2" | "3x3" | "4x4">("2x2");
+  const layoutToCols: { [key in "2x2" | "3x3" | "4x4"]: string } = {
+    "2x2": "grid-cols-2",
+    "3x3": "grid-cols-3",
+    "4x4": "grid-cols-4",
+  };
 
   const [cameraUIDs, setCameraUIDs] = useState<string[]>([]);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
@@ -49,19 +52,19 @@ const LiveView = () => {
   const pendingCandidates = useRef<{ [uid: string]: RTCIceCandidateInit[] }>(
     {}
   );
+  const lastCameraUIDs = useRef<string[]>([]); // Track last processed UIDs
 
-  const [viewLayout, setViewLayout] = useState<"2x2" | "3x3" | "4x4">("2x2");
-  const layoutToCols: { [key in "2x2" | "3x3" | "4x4"]: string } = {
-    "2x2": "grid-cols-2",
-    "3x3": "grid-cols-3",
-    "4x4": "grid-cols-4",
+  // Debounce function to limit state updates
+  const debounce = <F extends (...args: any[]) => void>(
+    func: F,
+    wait: number
+  ) => {
+    let timeout: NodeJS.Timeout | null = null;
+    return (...args: Parameters<F>) => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
   };
-
-  useEffect(() => {
-    if (context?.setHeader) {
-      context.setHeader("Live Camera View");
-    }
-  }, [context]);
 
   const flushQueue = () => {
     if (signalingWS.current?.readyState === WebSocket.OPEN) {
@@ -74,10 +77,8 @@ const LiveView = () => {
 
   const sendSignal = (signal: any) => {
     if (signalingWS.current?.readyState === WebSocket.OPEN) {
-      // Ensure signal is sent as a valid UTF-8 JSON string
       try {
-        const message = JSON.stringify(signal);
-        signalingWS.current.send(message);
+        signalingWS.current.send(JSON.stringify(signal));
       } catch (error) {
         console.error("Error stringifying signal:", error, signal);
       }
@@ -87,9 +88,9 @@ const LiveView = () => {
     }
   };
 
-  const connectSignalingWS = () => {
+  const connectSignalingWS = useCallback(() => {
     const ws = new WebSocket(SIGNALING_URL);
-    ws.binaryType = "arraybuffer"; // Set to handle binary data
+    ws.binaryType = "arraybuffer";
     signalingWS.current = ws;
 
     ws.onopen = () => {
@@ -101,13 +102,10 @@ const LiveView = () => {
       let data;
       try {
         if (msg.data instanceof ArrayBuffer) {
-          // Decode ArrayBuffer to UTF-8 string
           data = JSON.parse(new TextDecoder("utf-8").decode(msg.data));
         } else if (msg.data instanceof Blob) {
-          // Convert Blob to text
           data = JSON.parse(await msg.data.text());
         } else if (typeof msg.data === "string") {
-          // Parse string directly
           data = JSON.parse(msg.data);
         } else {
           console.error("Unsupported WebSocket message type:", typeof msg.data);
@@ -125,41 +123,9 @@ const LiveView = () => {
     };
 
     ws.onerror = (err) => console.error("❌ Signaling WebSocket error:", err);
-  };
-
-  useEffect(() => {
-    const camDataWS = new WebSocket(DASHBOARD_WS_URL);
-
-    camDataWS.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === "camera_status") {
-          const newUIDs: string[] = msg.online || [];
-          setCameraUIDs(newUIDs);
-
-          Object.keys(peerConnections.current).forEach((uid) => {
-            if (!newUIDs.includes(uid)) {
-              peerConnections.current[uid]?.close();
-              delete peerConnections.current[uid];
-              videoRefs.current.delete(uid);
-            }
-          });
-        }
-      } catch (err) {
-        console.error("Error processing camera status:", err);
-      }
-    };
-
-    connectSignalingWS();
-
-    return () => {
-      camDataWS.close();
-      signalingWS.current?.close();
-      Object.values(peerConnections.current).forEach((pc) => pc.close());
-    };
   }, []);
 
-  const initializePeerConnection = (uid: string) => {
+  const initializePeerConnection = useCallback((uid: string) => {
     console.log("🔗 Initializing PeerConnection for", uid);
     const pc = new RTCPeerConnection(STUN_TURN_CONFIG);
     peerConnections.current[uid] = pc;
@@ -169,7 +135,7 @@ const LiveView = () => {
         console.log("📤 Sending ICE candidate for", uid);
         sendSignal({
           type: "webrtc/candidate",
-          value: event.candidate.candidate,
+          value: event.candidate,
           uid: "cus-" + uid,
         });
       }
@@ -211,15 +177,11 @@ const LiveView = () => {
     };
 
     createOffer(uid);
-  };
+  }, []);
 
-  const createOffer = async (uid: string) => {
+  const createOffer = useCallback(async (uid: string) => {
     const pc = peerConnections.current[uid];
-    if (!pc) {
-      console.error("No PeerConnection for", uid);
-      return;
-    }
-
+    if (!pc) return;
     try {
       const offer = await pc.createOffer({
         offerToReceiveAudio: true,
@@ -235,48 +197,30 @@ const LiveView = () => {
     } catch (error) {
       console.error("Error creating offer for", uid, error);
     }
-  };
+  }, []);
 
-  const handleWebSocketMessage = async (data: any) => {
+  const handleWebSocketMessage = useCallback(async (data: any) => {
     const uid = data.uid?.replace("cus-", "").replace("ser-", "");
-    if (!uid) {
-      console.warn("No UID in message", data);
-      return;
-    }
-
+    if (!uid) return;
     const pc = peerConnections.current[uid];
-    if (!pc) {
-      console.warn("No PeerConnection for", uid);
-      return;
-    }
+    if (!pc) return;
 
     switch (data.type) {
       case "webrtc/candidate":
         try {
           console.log("📥 Adding ICE candidate for", uid);
           if (pc.remoteDescription) {
-            await pc.addIceCandidate(
-              new RTCIceCandidate({
-                candidate: data.value,
-                sdpMid: "0",
-                sdpMLineIndex: 0,
-              })
-            );
+            await pc.addIceCandidate(new RTCIceCandidate(data.value));
           } else {
             if (!pendingCandidates.current[uid]) {
               pendingCandidates.current[uid] = [];
             }
-            pendingCandidates.current[uid].push({
-              candidate: data.value,
-              sdpMid: "0",
-              sdpMLineIndex: 0,
-            });
+            pendingCandidates.current[uid].push(data.value);
           }
         } catch (error) {
           console.warn("Error adding ICE candidate for", uid, error);
         }
         break;
-
       case "webrtc/answer":
         try {
           if (pc.signalingState !== "stable") {
@@ -298,42 +242,86 @@ const LiveView = () => {
           console.warn("Error setting remote description for", uid, error);
         }
         break;
-
       case "error":
         console.error("Server error for", uid, data);
         break;
     }
-  };
+  }, []);
 
-  const changeStream = (streamType: string, uid: string) => {
+  const changeStream = useCallback((streamType: string, uid: string) => {
     console.log(`Changing stream to: ${streamType} for`, uid);
     sendSignal({ type: "changeStream", value: streamType, uid: "cus-" + uid });
-  };
+  }, []);
 
-  const addStream = (uid: string, streamType: string) => {
-    if (
-      !signalingWS.current ||
-      signalingWS.current.readyState !== WebSocket.OPEN
-    ) {
-      console.warn("WebSocket not open, initializing...");
-      connectSignalingWS();
-      setTimeout(() => {
+  const addStream = useCallback(
+    (uid: string, streamType: string) => {
+      if (
+        !signalingWS.current ||
+        signalingWS.current.readyState !== WebSocket.OPEN
+      ) {
+        console.warn("WebSocket not open, initializing...");
+        connectSignalingWS();
+        setTimeout(() => {
+          if (!peerConnections.current[uid]) {
+            initializePeerConnection(uid);
+            setTimeout(() => changeStream(streamType, uid), 500);
+          } else {
+            changeStream(streamType, uid);
+          }
+        }, 500);
+      } else {
         if (!peerConnections.current[uid]) {
           initializePeerConnection(uid);
           setTimeout(() => changeStream(streamType, uid), 500);
         } else {
           changeStream(streamType, uid);
         }
-      }, 500);
-    } else {
-      if (!peerConnections.current[uid]) {
-        initializePeerConnection(uid);
-        setTimeout(() => changeStream(streamType, uid), 500);
-      } else {
-        changeStream(streamType, uid);
       }
-    }
-  };
+    },
+    [changeStream, connectSignalingWS, initializePeerConnection]
+  );
+
+  useEffect(() => {
+    outlet?.setHeader?.({
+      title: "Live View",
+      actions: (
+        <LayoutDropdown viewLayout={viewLayout} setViewLayout={setViewLayout} />
+      ),
+    });
+    return () => outlet?.setHeader?.({ title: "Dashboard", actions: null });
+  }, [viewLayout]);
+
+  useEffect(() => {
+    const camDataWS = new WebSocket(DASHBOARD_WS_URL);
+
+    camDataWS.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "camera_status") {
+          const newUIDs: string[] = msg.online || [];
+          setCameraUIDs(newUIDs);
+
+          Object.keys(peerConnections.current).forEach((uid) => {
+            if (!newUIDs.includes(uid)) {
+              peerConnections.current[uid]?.close();
+              delete peerConnections.current[uid];
+              videoRefs.current.delete(uid);
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Error processing camera status:", err);
+      }
+    };
+
+    connectSignalingWS();
+
+    return () => {
+      camDataWS.close();
+      signalingWS.current?.close();
+      Object.values(peerConnections.current).forEach((pc) => pc.close());
+    };
+  }, []);
 
   useEffect(() => {
     cameraUIDs.forEach((uid) => {
@@ -344,79 +332,42 @@ const LiveView = () => {
   }, [cameraUIDs]);
 
   return (
-    <>
-      <div className="relative">
-        <div className="absolute top-0 right-0">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuButton
-                size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+    <div className="flex flex-col gap-4 py-0 md:gap-4 md:py-0">
+      <Card className="shadow-none border-0">
+        <CardContent className="space-y-0.5">
+          <div className={`grid gap-4 ${layoutToCols[viewLayout]}`}>
+            {cameraUIDs.map((uid) => (
+              <div
+                key={uid}
+                className="group relative aspect-video bg-black flex items-center justify-center rounded-md overflow-hidden"
               >
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <GalleryHorizontalEnd className="size-4" />
+                <div id={`streamContainer-${uid}`} className="w-full h-full" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Video className="absolute top-2 left-2 text-white w-6 h-6 cursor-pointer" />
+                  <Maximize
+                    className="absolute bottom-2 right-2 text-white w-6 h-6 cursor-pointer"
+                    onClick={() => {
+                      const container = document.getElementById(
+                        `streamContainer-${uid}`
+                      );
+                      if (container) {
+                        if (container.requestFullscreen) {
+                          container.requestFullscreen();
+                        } else if ((container as any).webkitRequestFullscreen) {
+                          (container as any).webkitRequestFullscreen();
+                        } else if ((container as any).msRequestFullscreen) {
+                          (container as any).msRequestFullscreen();
+                        }
+                      }
+                    }}
+                  />
                 </div>
-                <div className="flex gap-1 leading-none">
-                  <span className="font-medium">Layout</span>
-                  <span className="">{viewLayout}</span>
-                </div>
-                <ChevronsUpDown className="ml-auto" />
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="w-(--radix-dropdown-menu-trigger-width)"
-              align="start"
-            >
-              {Object.keys(layoutToCols).map((layout) => (
-                <DropdownMenuItem
-                  key={layout}
-                  onSelect={() =>
-                    setViewLayout(layout as "2x2" | "3x3" | "4x4")
-                  }
-                >
-                  {layout}{" "}
-                  {layout === viewLayout && <Check className="ml-auto" />}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-      <div className="flex flex-col gap-4 py-0 md:gap-4 md:py-0">
-        <Card className="shadow-none border-0">
-          <CardContent className="space-y-0.5">
-            <div className={`grid gap-4 ${layoutToCols[viewLayout]} `}>
-              {cameraUIDs.map((uid) => (
-                <div
-                  key={uid}
-                  className="relative aspect-video bg-black flex items-center justify-center rounded-md overflow-hidden"
-                >
-                  <div id={`streamContainer-${uid}`} className="w-full h-full">
-                    <video
-                      ref={(el) => {
-                        if (el) videoRefs.current.set(uid, el);
-                      }}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="w-full h-full rounded-md object-cover"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            {/* <div className="flex justify-center gap-2">
-          <Button size="icon" variant="outline">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button size="icon" variant="outline">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div> */}
-          </CardContent>
-        </Card>
-      </div>
-    </>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

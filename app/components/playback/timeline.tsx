@@ -2,13 +2,19 @@ import { useRef, useEffect, type RefObject } from "react";
 import { DataSet } from "vis-data";
 import { Timeline } from "vis-timeline/standalone";
 import "vis-timeline/styles/vis-timeline-graph2d.min.css";
+import "./timeline.css"; // keep only the .vis-* customizations here
 
 interface TimelineProps {
   videoRef: RefObject<HTMLVideoElement | null>;
   recordings: { id: number; start: Date; end: Date }[];
+  selectedDate?: Date;
 }
 
-export function PlaybackTimeline({ videoRef, recordings }: TimelineProps) {
+export function PlaybackTimeline({
+  videoRef,
+  recordings,
+  selectedDate,
+}: TimelineProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
   const timelineInstance = useRef<Timeline | null>(null);
 
@@ -21,6 +27,7 @@ export function PlaybackTimeline({ videoRef, recordings }: TimelineProps) {
         start: rec.start,
         end: rec.end,
         content: "Recording",
+        className: "recorded-segment", // add custom class here
       }))
     );
 
@@ -30,8 +37,16 @@ export function PlaybackTimeline({ videoRef, recordings }: TimelineProps) {
       zoomable: true,
       horizontalScroll: true,
       moveable: true,
-      min: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12h before
-      max: new Date(Date.now() + 12 * 60 * 60 * 1000), // 12h after
+      min: new Date(
+        selectedDate
+          ? new Date(selectedDate).getTime() - 12 * 60 * 60 * 1000
+          : Date.now() - 12 * 60 * 60 * 1000
+      ),
+      max: new Date(
+        selectedDate
+          ? new Date(selectedDate).getTime() + 12 * 60 * 60 * 1000
+          : Date.now() + 12 * 60 * 60 * 1000
+      ),
       zoomMin: 1000 * 60, // 1 minute
       zoomMax: 1000 * 60 * 60 * 24, // 1 day
     };
@@ -48,7 +63,6 @@ export function PlaybackTimeline({ videoRef, recordings }: TimelineProps) {
       const itemId = props.items[0];
       const item = items.get(itemId);
 
-      // Properly type guard: ensure item exists and has a 'start' property
       if (item && "start" in item && item.start && videoRef.current) {
         const startTimeMs = new Date(item.start as Date).getTime();
         const startSec = (startTimeMs / 1000) % videoRef.current.duration;
@@ -62,5 +76,9 @@ export function PlaybackTimeline({ videoRef, recordings }: TimelineProps) {
     };
   }, [recordings]);
 
-  return <div className="h-[100px]" ref={timelineRef} />;
+  return (
+    <div className="w-full h-[130px] rounded-lg shadow-md p-2">
+      <div ref={timelineRef} className="h-full" />
+    </div>
+  );
 }

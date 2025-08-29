@@ -1,5 +1,7 @@
 import { SectionCards } from "@/components/dashboard/section-cards";
 import Management from "./management";
+import { useOutletContext } from "react-router";
+import type { ReactNode } from "react";
 
 export default function Dashboard() {
   return (
