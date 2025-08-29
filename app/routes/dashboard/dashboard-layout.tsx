@@ -13,7 +13,7 @@ type HeaderContext = {
 const DashboardLayout = () => {
   // Parent-managed header state (default = "Dashboard")
   const [header, setHeader] = useState<HeaderContext>({
-    title: "Dashboard",
+    title: "",
     actions: null,
   });
 

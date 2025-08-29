@@ -1,5 +1,10 @@
 import { DataTable } from "@/components/dashboard/data-table";
-import { useEffect, useState, type FC, type JSX } from "react";
+import { useEffect, useState, type FC, type JSX, type ReactNode } from "react";
+import { useOutletContext } from "react-router";
+
+type OutletHeaderSetter = {
+  setHeader?: (ctx: { title?: string; actions?: ReactNode | null }) => void;
+};
 
 interface ManagementProps {
   hideUsersTable?: boolean;
@@ -8,6 +13,8 @@ interface ManagementProps {
 const Management: FC<ManagementProps> = ({
   hideUsersTable = false,
 }): JSX.Element => {
+  const outlet = useOutletContext<OutletHeaderSetter>();
+
   const [users, setUsers] = useState<any[]>([]);
   const [devices, setDevices] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
@@ -16,6 +23,16 @@ const Management: FC<ManagementProps> = ({
 
   const API_URL = "http://172.16.0.157:5000/api";
   const WS_URL = "ws://172.16.0.157:5001/camdata";
+
+  useEffect(() => {
+    return () => {
+      if (hideUsersTable) {
+        outlet?.setHeader?.({ title: "Dashboard", actions: null });
+      } else {
+        outlet?.setHeader?.({ title: "Management", actions: null });
+      }
+    };
+  }, [hideUsersTable]);
 
   useEffect(() => {
     const fetchData = async () => {

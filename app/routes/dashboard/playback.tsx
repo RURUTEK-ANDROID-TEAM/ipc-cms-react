@@ -9,13 +9,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ChevronDownIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useOutletContext } from "react-router";
 
+type OutletHeaderSetter = {
+  setHeader?: (ctx: { title?: string; actions?: ReactNode | null }) => void;
+};
+
 const Playback = () => {
-  const context = useOutletContext<any>();
-  context.title = "Live View";
-  context.actions = <></>;
+  const outlet = useOutletContext<OutletHeaderSetter>();
 
   const recordings = [
     {
@@ -34,6 +36,12 @@ const Playback = () => {
 
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>(undefined);
+
+  useEffect(() => {
+    return () => {
+      outlet?.setHeader?.({ title: "Playback", actions: null });
+    };
+  }, []);
 
   return (
     <div className="ml-4 mr-4">

@@ -13,6 +13,7 @@ import { LayoutDropdown } from "@/components/live-view/layout-dropdown";
 type OutletHeaderSetter = {
   setHeader?: (ctx: { title?: string; actions?: ReactNode | null }) => void;
 };
+
 type PeerConnections = {
   [uid: string]: RTCPeerConnection;
 };
@@ -52,49 +53,49 @@ const LiveView = () => {
   const pendingCandidates = useRef<{ [uid: string]: RTCIceCandidateInit[] }>(
     {}
   );
-  const lastCameraUIDs = useRef<string[]>([]); // Track last processed UIDs
+  const isConnecting = useRef<boolean>(false);
+  const streamLocks = useRef<Map<string, boolean>>(new Map());
+  const pendingStreams = useRef<Map<string, MediaStream[]>>(new Map()); // Queue streams during lock
 
-  // Debounce function to limit state updates
-  const debounce = <F extends (...args: any[]) => void>(
-    func: F,
-    wait: number
-  ) => {
-    let timeout: NodeJS.Timeout | null = null;
-    return (...args: Parameters<F>) => {
-      if (timeout) clearTimeout(timeout);
-      timeout = setTimeout(() => func(...args), wait);
-    };
-  };
-
-  const flushQueue = () => {
+  const flushQueue = useCallback(() => {
     if (signalingWS.current?.readyState === WebSocket.OPEN) {
       messageQueue.current.forEach((msg) =>
         signalingWS.current!.send(JSON.stringify(msg))
       );
       messageQueue.current = [];
     }
-  };
+  }, []);
 
-  const sendSignal = (signal: any) => {
+  const sendSignal = useCallback((signal: any) => {
     if (signalingWS.current?.readyState === WebSocket.OPEN) {
       try {
         signalingWS.current.send(JSON.stringify(signal));
       } catch (error) {
-        console.error("Error stringifying signal:", error, signal);
+        console.error("Error sending signal:", error, signal);
+        messageQueue.current.push(signal);
       }
     } else {
-      console.warn("WS not open, queue signal", signal);
+      console.warn("WebSocket not open, queuing signal", signal);
       messageQueue.current.push(signal);
     }
-  };
+  }, []);
 
   const connectSignalingWS = useCallback(() => {
+    if (
+      isConnecting.current ||
+      signalingWS.current?.readyState === WebSocket.OPEN
+    ) {
+      return;
+    }
+
+    isConnecting.current = true;
     const ws = new WebSocket(SIGNALING_URL);
     ws.binaryType = "arraybuffer";
     signalingWS.current = ws;
 
     ws.onopen = () => {
       console.log("✅ Signaling WebSocket connected");
+      isConnecting.current = false;
       flushQueue();
     };
 
@@ -119,139 +120,260 @@ const LiveView = () => {
 
     ws.onclose = () => {
       console.log("⚠️ Signaling WebSocket closed, reconnecting...");
-      setTimeout(connectSignalingWS, 5000);
+      isConnecting.current = false;
+      setTimeout(connectSignalingWS, 3000);
     };
 
-    ws.onerror = (err) => console.error("❌ Signaling WebSocket error:", err);
+    ws.onerror = (err) => {
+      console.error("❌ Signaling WebSocket error:", err);
+      isConnecting.current = false;
+    };
   }, []);
 
-  const initializePeerConnection = useCallback((uid: string) => {
-    console.log("🔗 Initializing PeerConnection for", uid);
-    const pc = new RTCPeerConnection(STUN_TURN_CONFIG);
-    peerConnections.current[uid] = pc;
+  const initializePeerConnection = useCallback(
+    (uid: string) => {
+      if (peerConnections.current[uid]) {
+        peerConnections.current[uid].close();
+        delete peerConnections.current[uid];
+        videoRefs.current.delete(uid);
+        streamLocks.current.delete(uid);
+        pendingStreams.current.delete(uid);
+      }
 
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        console.log("📤 Sending ICE candidate for", uid);
+      console.log("🔗 Initializing PeerConnection for", uid);
+      const pc = new RTCPeerConnection(STUN_TURN_CONFIG);
+      peerConnections.current[uid] = pc;
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          console.log("📤 Sending ICE candidate for", uid);
+          sendSignal({
+            type: "webrtc/candidate",
+            value: event.candidate,
+            uid: "cus-" + uid,
+          });
+        }
+      };
+
+      pc.ontrack = async (event) => {
+        console.log(
+          `🎥 Received track for ${uid} at ${new Date().toISOString()}`
+        );
+        if (!event.streams[0]) {
+          console.warn("No stream received for", uid);
+          return;
+        }
+
+        if (streamLocks.current.get(uid)) {
+          console.warn(
+            "Stream assignment in progress for",
+            uid,
+            "queuing stream..."
+          );
+          if (!pendingStreams.current.get(uid)) {
+            pendingStreams.current.set(uid, []);
+          }
+          pendingStreams.current.get(uid)!.push(event.streams[0]);
+          return;
+        }
+
+        streamLocks.current.set(uid, true);
+        try {
+          let video = videoRefs.current.get(uid);
+          if (!video) {
+            video = document.createElement("video");
+            video.id = uid;
+            video.controls = false;
+            video.autoplay = true;
+            video.muted = true;
+            video.style.width = "100%";
+            video.style.height = "100%";
+            video.style.objectFit = "fill";
+            videoRefs.current.set(uid, video);
+            const streamContainer = document.getElementById(
+              `streamContainer-${uid}`
+            );
+            if (streamContainer) {
+              streamContainer.innerHTML = "";
+              streamContainer.appendChild(video);
+            }
+          }
+
+          if (video.srcObject !== event.streams[0]) {
+            video.srcObject = event.streams[0];
+            try {
+              await new Promise((resolve) => {
+                video.onloadedmetadata = resolve;
+              });
+              await video.play();
+              console.log("✅ Video playing for", uid);
+            } catch (e) {
+              console.error("play() failed for", uid, e);
+            }
+          }
+
+          // Process any queued streams
+          const queuedStreams = pendingStreams.current.get(uid) || [];
+          for (const queuedStream of queuedStreams) {
+            if (video.srcObject !== queuedStream) {
+              video.srcObject = queuedStream;
+              try {
+                await new Promise((resolve) => {
+                  video.onloadedmetadata = resolve;
+                });
+                await video.play();
+                console.log("✅ Queued video playing for", uid);
+              } catch (e) {
+                console.error("play() failed for queued stream", uid, e);
+              }
+            }
+          }
+          pendingStreams.current.delete(uid);
+        } finally {
+          streamLocks.current.delete(uid);
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE", uid, "->", pc.iceConnectionState);
+        if (
+          ["failed", "disconnected", "closed"].includes(pc.iceConnectionState)
+        ) {
+          console.warn("ICE connection issue for", uid, pc.iceConnectionState);
+          pc.close();
+          delete peerConnections.current[uid];
+          videoRefs.current.delete(uid);
+          streamLocks.current.delete(uid);
+          pendingStreams.current.delete(uid);
+          setTimeout(() => {
+            initializePeerConnection(uid);
+            setTimeout(() => changeStream("main", uid), 500);
+          }, 1000); // Delay reinitialization to avoid rapid cycling
+        }
+      };
+
+      createOffer(uid);
+    },
+    [sendSignal]
+  );
+
+  const createOffer = useCallback(
+    async (uid: string) => {
+      const pc = peerConnections.current[uid];
+      if (!pc) return;
+      try {
+        const offer = await pc.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true,
+        });
+        await pc.setLocalDescription(offer);
+        console.log("📤 Sending offer for", uid);
         sendSignal({
-          type: "webrtc/candidate",
-          value: event.candidate,
+          type: "webrtc/offer",
+          value: offer.sdp,
           uid: "cus-" + uid,
         });
+      } catch (error) {
+        console.error("Error creating offer for", uid, error);
       }
-    };
+    },
+    [sendSignal]
+  );
 
-    pc.ontrack = (event) => {
-      console.log("🎥 Received track for", uid);
-      let video = videoRefs.current.get(uid);
-      if (!video) {
-        video = document.createElement("video");
-        video.id = uid;
-        video.controls = false;
-        video.autoplay = true;
-        video.muted = true;
-        video.style.width = "100%";
-        video.style.height = "100%";
-        video.style.objectFit = "fill";
-        videoRefs.current.set(uid, video);
-        const streamContainer = document.getElementById(
-          `streamContainer-${uid}`
-        );
-        if (streamContainer) {
-          streamContainer.innerHTML = "";
-          streamContainer.appendChild(video);
-        }
+  const handleWebSocketMessage = useCallback(
+    async (data: any) => {
+      const uid = data.uid?.replace("cus-", "").replace("ser-", "");
+      if (!uid) return;
+      const pc = peerConnections.current[uid];
+      if (!pc) return;
+
+      switch (data.type) {
+        case "webrtc/candidate":
+          try {
+            console.log("📥 Adding ICE candidate for", uid);
+
+            let candidateInit: RTCIceCandidateInit;
+
+            // If the server sends a string, wrap it
+            if (typeof data.value === "string") {
+              candidateInit = {
+                candidate: data.value,
+                sdpMid: "0",
+                sdpMLineIndex: 0,
+              };
+            } else {
+              candidateInit = {
+                candidate: data.value.candidate || "",
+                sdpMid: data.value.sdpMid ?? "0",
+                sdpMLineIndex: data.value.sdpMLineIndex ?? 0,
+              };
+            }
+
+            if (pc.remoteDescription && pc.signalingState !== "closed") {
+              await pc.addIceCandidate(new RTCIceCandidate(candidateInit));
+            } else {
+              if (!pendingCandidates.current[uid]) {
+                pendingCandidates.current[uid] = [];
+              }
+              pendingCandidates.current[uid].push(candidateInit);
+            }
+          } catch (error) {
+            console.warn("Error adding ICE candidate for", uid, error);
+          }
+          break;
+        case "webrtc/answer":
+          try {
+            if (pc.signalingState === "have-local-offer") {
+              console.log("📥 Setting remote description for", uid);
+              await pc.setRemoteDescription({
+                type: "answer",
+                sdp: data.value,
+              });
+              if (pendingCandidates.current[uid]) {
+                for (const cand of pendingCandidates.current[uid]) {
+                  await pc.addIceCandidate(new RTCIceCandidate(cand));
+                }
+                delete pendingCandidates.current[uid];
+              }
+            } else {
+              console.warn(
+                "Ignoring answer in signaling state",
+                pc.signalingState,
+                "for",
+                uid
+              );
+            }
+          } catch (error) {
+            console.warn("Error setting remote description for", uid, error);
+          }
+          break;
+
+        case "error":
+          console.error("Server error for", uid, data);
+          pc.close();
+          delete peerConnections.current[uid];
+          videoRefs.current.delete(uid);
+          streamLocks.current.delete(uid);
+          pendingStreams.current.delete(uid);
+          initializePeerConnection(uid);
+          setTimeout(() => changeStream("main", uid), 500);
+          break;
       }
-      if (event.streams[0]) {
-        video.srcObject = event.streams[0];
-        video.play().catch((e) => console.error("play() failed:", e));
-      }
-    };
+    },
+    [initializePeerConnection]
+  );
 
-    pc.oniceconnectionstatechange = () => {
-      console.log("ICE", uid, "->", pc.iceConnectionState);
-      if (pc.iceConnectionState === "failed") {
-        console.warn("ICE failed, restarting for", uid);
-        pc.restartIce();
-      }
-    };
-
-    createOffer(uid);
-  }, []);
-
-  const createOffer = useCallback(async (uid: string) => {
-    const pc = peerConnections.current[uid];
-    if (!pc) return;
-    try {
-      const offer = await pc.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true,
-      });
-      await pc.setLocalDescription(offer);
-      console.log("📤 Sending offer for", uid);
+  const changeStream = useCallback(
+    (streamType: string, uid: string) => {
+      console.log(`Changing stream to: ${streamType} for`, uid);
       sendSignal({
-        type: "webrtc/offer",
-        value: offer.sdp,
+        type: "changeStream",
+        value: streamType,
         uid: "cus-" + uid,
       });
-    } catch (error) {
-      console.error("Error creating offer for", uid, error);
-    }
-  }, []);
-
-  const handleWebSocketMessage = useCallback(async (data: any) => {
-    const uid = data.uid?.replace("cus-", "").replace("ser-", "");
-    if (!uid) return;
-    const pc = peerConnections.current[uid];
-    if (!pc) return;
-
-    switch (data.type) {
-      case "webrtc/candidate":
-        try {
-          console.log("📥 Adding ICE candidate for", uid);
-          if (pc.remoteDescription) {
-            await pc.addIceCandidate(new RTCIceCandidate(data.value));
-          } else {
-            if (!pendingCandidates.current[uid]) {
-              pendingCandidates.current[uid] = [];
-            }
-            pendingCandidates.current[uid].push(data.value);
-          }
-        } catch (error) {
-          console.warn("Error adding ICE candidate for", uid, error);
-        }
-        break;
-      case "webrtc/answer":
-        try {
-          if (pc.signalingState !== "stable") {
-            console.log("📥 Setting remote description for", uid);
-            await pc.setRemoteDescription({
-              type: "answer",
-              sdp: data.value,
-            });
-            if (pendingCandidates.current[uid]) {
-              for (const cand of pendingCandidates.current[uid]) {
-                await pc.addIceCandidate(new RTCIceCandidate(cand));
-              }
-              delete pendingCandidates.current[uid];
-            }
-          } else {
-            console.warn("Ignoring answer in stable state for", uid);
-          }
-        } catch (error) {
-          console.warn("Error setting remote description for", uid, error);
-        }
-        break;
-      case "error":
-        console.error("Server error for", uid, data);
-        break;
-    }
-  }, []);
-
-  const changeStream = useCallback((streamType: string, uid: string) => {
-    console.log(`Changing stream to: ${streamType} for`, uid);
-    sendSignal({ type: "changeStream", value: streamType, uid: "cus-" + uid });
-  }, []);
+    },
+    [sendSignal]
+  );
 
   const addStream = useCallback(
     (uid: string, streamType: string) => {
@@ -261,21 +383,15 @@ const LiveView = () => {
       ) {
         console.warn("WebSocket not open, initializing...");
         connectSignalingWS();
-        setTimeout(() => {
-          if (!peerConnections.current[uid]) {
-            initializePeerConnection(uid);
-            setTimeout(() => changeStream(streamType, uid), 500);
-          } else {
-            changeStream(streamType, uid);
-          }
-        }, 500);
+        setTimeout(() => addStream(uid, streamType), 1000);
+        return;
+      }
+
+      if (!peerConnections.current[uid]) {
+        initializePeerConnection(uid);
+        setTimeout(() => changeStream(streamType, uid), 500);
       } else {
-        if (!peerConnections.current[uid]) {
-          initializePeerConnection(uid);
-          setTimeout(() => changeStream(streamType, uid), 500);
-        } else {
-          changeStream(streamType, uid);
-        }
+        changeStream(streamType, uid);
       }
     },
     [changeStream, connectSignalingWS, initializePeerConnection]
@@ -288,7 +404,7 @@ const LiveView = () => {
         <LayoutDropdown viewLayout={viewLayout} setViewLayout={setViewLayout} />
       ),
     });
-    return () => outlet?.setHeader?.({ title: "Dashboard", actions: null });
+    return () => outlet?.setHeader?.({ title: "Live View", actions: null });
   }, [viewLayout]);
 
   useEffect(() => {
@@ -306,6 +422,8 @@ const LiveView = () => {
               peerConnections.current[uid]?.close();
               delete peerConnections.current[uid];
               videoRefs.current.delete(uid);
+              streamLocks.current.delete(uid);
+              pendingStreams.current.delete(uid);
             }
           });
         }
@@ -314,14 +432,33 @@ const LiveView = () => {
       }
     };
 
+    camDataWS.onerror = (err) => {
+      console.error("Camera data WebSocket error:", err);
+      camDataWS.close();
+    };
+
+    camDataWS.onclose = () => {
+      console.log("Camera data WebSocket closed, reconnecting...");
+      setTimeout(() => {
+        const newWS = new WebSocket(DASHBOARD_WS_URL);
+        camDataWS.onmessage = newWS.onmessage;
+        camDataWS.onerror = newWS.onerror;
+        camDataWS.onclose = newWS.onclose;
+      }, 3000);
+    };
+
     connectSignalingWS();
 
     return () => {
       camDataWS.close();
       signalingWS.current?.close();
       Object.values(peerConnections.current).forEach((pc) => pc.close());
+      peerConnections.current = {};
+      videoRefs.current.clear();
+      streamLocks.current.clear();
+      pendingStreams.current.clear();
     };
-  }, []);
+  }, [connectSignalingWS]);
 
   useEffect(() => {
     cameraUIDs.forEach((uid) => {
@@ -329,7 +466,7 @@ const LiveView = () => {
         addStream(uid, "main");
       }
     });
-  }, [cameraUIDs]);
+  }, [cameraUIDs, addStream]);
 
   return (
     <div className="flex flex-col gap-4 py-0 md:gap-4 md:py-0">
