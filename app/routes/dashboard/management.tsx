@@ -1,5 +1,12 @@
 import { DataTable } from "@/components/dashboard/data-table";
-import { useEffect, useState, type FC, type JSX, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FC,
+  type JSX,
+  type ReactNode,
+} from "react";
 import { useOutletContext } from "react-router";
 
 type OutletHeaderSetter = {
@@ -14,6 +21,7 @@ const Management: FC<ManagementProps> = ({
   hideUsersTable = false,
 }): JSX.Element => {
   const outlet = useOutletContext<OutletHeaderSetter>();
+  const updateOnlineUIDs = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [users, setUsers] = useState<any[]>([]);
   const [devices, setDevices] = useState<any[]>([]);
@@ -72,6 +80,8 @@ const Management: FC<ManagementProps> = ({
       }
     };
 
+    console.log("Hide Users Table: ", hideUsersTable);
+
     fetchData();
   }, [hideUsersTable]);
 
@@ -82,7 +92,10 @@ const Management: FC<ManagementProps> = ({
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === "camera_status") {
-          setOnlineUIDs(msg.online || []);
+          if (updateOnlineUIDs.current) clearTimeout(updateOnlineUIDs.current);
+          updateOnlineUIDs.current = setTimeout(() => {
+            setOnlineUIDs(msg.online || []);
+          }, 50);
         }
       } catch (err) {
         console.error("WebSocket message parse error:", err);
@@ -113,8 +126,6 @@ const Management: FC<ManagementProps> = ({
       </div>
     );
   }
-
-  console.log("Hide Users Table: ", hideUsersTable);
 
   return (
     <DataTable

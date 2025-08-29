@@ -59,7 +59,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -72,7 +74,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import { DialogClose, DialogTrigger } from "@radix-ui/react-dialog";
+import { Input } from "../ui/input";
+import { UserPlus } from "lucide-react";
+import { toast } from "sonner";
 
 // ---------------- Schemas ----------------
 export const userSchema = z.object({
@@ -482,6 +496,80 @@ export function DataTable({
   groups: z.infer<typeof groupSchema>[];
   hideUsersTable?: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleAddUser = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const username = formData.get("username")?.toString();
+    const password = formData.get("password")?.toString();
+    const selectedRole = role ? role.toLowerCase() : null;
+
+    if (!username || !password || !selectedRole) {
+      toast.error("Please fill in all fields");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        toast.error("No access token found. Please log in.");
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch("http://172.16.0.157:5000/api/users", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password, role: selectedRole }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data.message || "Something went wrong while adding the user"
+        );
+      }
+
+      // ✅ Show toast first
+      toast.success("User added successfully 🎉");
+
+      // ✅ Update table
+      setUserData((prev) => [
+        ...prev,
+        {
+          id: data.id,
+          username: data.username,
+          role: data.role,
+          created_at: data.created_at || new Date().toISOString(),
+          updated_at: data.updated_at || new Date().toISOString(),
+        },
+      ]);
+
+      // ✅ Reset form and role
+      setRole("");
+      e.currentTarget.reset();
+
+      // ✅ Close the dialog AFTER state updates
+      setOpen(false);
+    } catch (error: any) {
+      setError(error.message);
+      toast.error(error.message || "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // sensors for drag-and-drop
   const sensors = useSensors(
     useSensor(MouseSensor),
@@ -490,7 +578,9 @@ export function DataTable({
   );
 
   // states
-  const [userData, setUserData] = useState(initUsers);
+  const [userData, setUserData] = useState(
+    Array.isArray(initUsers) ? initUsers : []
+  );
   const [deviceData, setDeviceData] = useState(initDevices);
   const [groupData, setGroupData] = useState(initGroups);
 
@@ -500,6 +590,8 @@ export function DataTable({
     : ["users", "devices", "groups"];
 
   const [activeTab, setActiveTab] = useState(tabOptions[0]);
+
+  const [role, setRole] = useState("");
 
   useEffect(() => {
     if (hideUsersTable && activeTab === "users") {
@@ -513,9 +605,20 @@ export function DataTable({
   useEffect(() => setGroupData(initGroups), [initGroups]);
 
   // ids for dnd
-  const userIds = useMemo(() => userData.map(({ id }) => id), [userData]);
-  const deviceIds = useMemo(() => deviceData.map(({ id }) => id), [deviceData]);
-  const groupIds = useMemo(() => groupData.map(({ id }) => id), [groupData]);
+  const userIds = useMemo(
+    () => (Array.isArray(userData) ? userData.map(({ id }) => id) : []),
+    [userData]
+  );
+
+  const deviceIds = useMemo(
+    () => (Array.isArray(deviceData) ? deviceData.map(({ id }) => id) : []),
+    [deviceData]
+  );
+
+  const groupIds = useMemo(
+    () => (Array.isArray(groupData) ? groupData.map(({ id }) => id) : []),
+    [groupData]
+  );
 
   // table instances
   const userTable = useReactTable({
@@ -700,20 +803,148 @@ export function DataTable({
                 )}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <Button variant="outline" size="sm">
-            <IconPlus />
-            <span className="hidden lg:inline">
-              {activeTab === "users" && "Add User"}
-              {activeTab === "devices" && "Add Device"}
-              {activeTab === "groups" && "Add Group"}
-            </span>
-            <span className="lg:hidden">
-              {activeTab === "users" && "User"}
-              {activeTab === "devices" && "Device"}
-              {activeTab === "groups" && "Group"}
-            </span>
-          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <IconPlus />
+                <span className="hidden lg:inline">
+                  {activeTab === "users" && "Add User"}
+                  {activeTab === "devices" && "Add Device"}
+                  {activeTab === "groups" && "Add Group"}
+                </span>
+                <span className="lg:hidden">
+                  {activeTab === "users" && "User"}
+                  {activeTab === "devices" && "Device"}
+                  {activeTab === "groups" && "Group"}
+                </span>
+              </Button>
+            </DialogTrigger>
+            {activeTab === "users" && (
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={handleAddUser}>
+                  <DialogHeader className="mb-4">
+                    <DialogTitle>Add User</DialogTitle>
+                    <DialogDescription>
+                      Fill in the details below to create a new user account.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4">
+                    <div className="grid gap-3">
+                      <Label htmlFor="username">Username</Label>
+                      <Input
+                        id="username"
+                        name="username"
+                        type="text"
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-3">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-3">
+                      <Label htmlFor="role">Role</Label>
+                      <Select value={role} onValueChange={setRole} required>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a Role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Role</SelectLabel>
+                            <SelectItem value="operator">Operator</SelectItem>
+                            <SelectItem value="viewer">Viewer</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter className="mt-4">
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button type="submit" disabled={loading}>
+                      <UserPlus /> Add User
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            )}
+            {activeTab === "devices" && (
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add Device</DialogTitle>
+                  <DialogDescription>
+                    Make changes to your profile here. Click save when
+                    you&apos;re done.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4">
+                  <div className="grid gap-3">
+                    <Label htmlFor="name-1">Name</Label>
+                    <Input
+                      id="name-1"
+                      name="name"
+                      defaultValue="Pedro Duarte"
+                    />
+                  </div>
+                  <div className="grid gap-3">
+                    <Label htmlFor="username-1">Username</Label>
+                    <Input
+                      id="username-1"
+                      name="username"
+                      defaultValue="@peduarte"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button type="submit">Save changes</Button>
+                </DialogFooter>
+              </DialogContent>
+            )}
+            {activeTab === "groups" && (
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add Groups</DialogTitle>
+                  <DialogDescription>
+                    Make changes to your profile here. Click save when
+                    you&apos;re done.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4">
+                  <div className="grid gap-3">
+                    <Label htmlFor="name-1">Name</Label>
+                    <Input
+                      id="name-1"
+                      name="name"
+                      defaultValue="Pedro Duarte"
+                    />
+                  </div>
+                  <div className="grid gap-3">
+                    <Label htmlFor="username-1">Username</Label>
+                    <Input
+                      id="username-1"
+                      name="username"
+                      defaultValue="@peduarte"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button type="submit">Save changes</Button>
+                </DialogFooter>
+              </DialogContent>
+            )}
+          </Dialog>
         </div>
       </div>
 
