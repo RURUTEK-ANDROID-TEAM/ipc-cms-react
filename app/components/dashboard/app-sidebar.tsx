@@ -47,23 +47,8 @@ const data = {
     },
     {
       title: "Playback",
-      url: "#",
+      url: "/dashboard/playback",
       icon: IconArrowBackUp,
-    },
-    {
-      title: "Devices",
-      url: "#",
-      icon: IconDevices,
-    },
-    {
-      title: "Storage",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
-      title: "Alerts",
-      url: "#",
-      icon: IconAlertHexagon,
     },
     {
       title: "Management",
