@@ -46,8 +46,13 @@ export function SectionCards() {
       const msg = JSON.parse(event.data);
       if (msg.type === "camera_status") {
         setOnlineCamerasCount(msg.total); // total online
-        if (totalCameraCount !== null) {
+        if (totalCameraCount !== null && totalCameraCount != 0) {
           setOfflineCamerasCount(totalCameraCount - msg.total); // offline = total - online
+        }
+
+        if (totalCameraCount === 0) {
+          setOnlineCamerasCount(0);
+          setOfflineCamerasCount(0);
         }
       }
     };

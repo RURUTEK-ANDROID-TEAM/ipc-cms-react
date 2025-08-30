@@ -127,11 +127,40 @@ const Management: FC<ManagementProps> = ({
     );
   }
 
+  async function fetchUsers() {
+    const token = localStorage.getItem("accessToken");
+    const res = await fetch("http://172.16.0.157:5000/api/users", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setUsers(await res.json());
+  }
+
+  async function fetchDevices() {
+    const token = localStorage.getItem("accessToken");
+    const res = await fetch("http://172.16.0.157:5000/api/cameras", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setDevices(await res.json());
+  }
+
+  async function fetchGroups() {
+    const token = localStorage.getItem("accessToken");
+    const res = await fetch("http://172.16.0.157:5000/api/groups", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setGroups(await res.json());
+  }
+
   return (
     <DataTable
       users={users}
       devices={devices}
       groups={groups}
+      refreshUsers={fetchUsers}
+      refreshDevices={fetchDevices}
+      refreshGroups={fetchGroups}
       hideUsersTable={hideUsersTable}
     />
   );
