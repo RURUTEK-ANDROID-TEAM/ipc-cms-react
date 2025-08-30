@@ -24,9 +24,11 @@ import {
   IconChevronsLeft,
   IconChevronsRight,
   IconDotsVertical,
+  IconEdit,
   IconGripVertical,
   IconLayoutColumns,
   IconPlus,
+  IconTrash,
   IconUser,
   IconUserPentagon,
   IconUserStar,
@@ -96,6 +98,18 @@ import { Input } from "../ui/input";
 import { Group, UserPlus, Video } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "../ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
+import { AlertDialogContent } from "@radix-ui/react-alert-dialog";
+
+const API_URL = "http://172.16.0.157:5000/api";
 
 // ---------------- Schemas ----------------
 export const userSchema = z.object({
@@ -134,25 +148,443 @@ type User = z.infer<typeof userSchema>;
 type Device = z.infer<typeof deviceSchema>;
 type Group = z.infer<typeof groupSchema>;
 
-// ---------------- Drag Handle ----------------
-function DragHandle({ id }: { id: number }) {
-  const { attributes, listeners } = useSortable({ id });
+// ---------------- Delete Confirmation Dialog ----------
+function DeleteConfirmationDialog({
+  open,
+  openChange,
+  onConfirm,
+  loading,
+  title,
+  description,
+}: {
+  open: boolean;
+  openChange: (open: boolean) => void;
+  onConfirm: () => void;
+  loading: boolean;
+  title: string;
+  description: string;
+}) {
   return (
-    <Button
-      {...attributes}
-      {...listeners}
-      variant="ghost"
-      size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent"
-    >
-      <IconGripVertical className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag to reorder</span>
-    </Button>
+    <AlertDialog open={open} onOpenChange={openChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            disabled={loading}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {loading ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+// ---------------- Edit User Dialog ----------------
+function EditUserDialog({
+  user,
+  open,
+  onOpenChange,
+  onSave,
+}: {
+  user: User;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (updatedUser: Partial<User>) => Promise<void>;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    username: user.username,
+    role: user.role,
+  });
+
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        username: user.username,
+        role: user.role,
+      });
+      setError(null);
+    }
+  }, [open, user]);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      await onSave(formData);
+      onOpenChange(false);
+      toast.success("User updated successfully");
+    } catch (err: any) {
+      const errorMessage = err.message || "Failed to update user";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader className="mb-4">
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update the user's information below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            {error && (
+              <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
+                {error}
+              </div>
+            )}
+            <div className="grid gap-3">
+              <Label htmlFor="edit-username">Username</Label>
+              <Input
+                id="edit-username"
+                value={formData.username}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
+                disabled={loading}
+                required
+              />
+            </div>
+            <div className="grid gap-3">
+              <Label htmlFor="edit-role">Role</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, role: value })
+                }
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Role</SelectLabel>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="operator">Operator</SelectItem>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------- Edit Device Dialog ----------------
+function EditDeviceDialog({
+  device,
+  open,
+  onOpenChange,
+  onSave,
+}: {
+  device: Device;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (updatedDevice: Partial<Device>) => Promise<void>;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    uid: device.uid,
+    mac_address: device.mac_address,
+    ip_address: device.ip_address,
+    model: device.model,
+    manufacturer: device.manufacturer,
+    serial_number: device.serial_number,
+  });
+
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        uid: device.uid,
+        mac_address: device.mac_address,
+        ip_address: device.ip_address,
+        model: device.model,
+        manufacturer: device.manufacturer,
+        serial_number: device.serial_number,
+      });
+      setError(null);
+    }
+  }, [open, device]);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      await onSave(formData);
+      onOpenChange(false);
+      toast.success("Device updated successfully");
+    } catch (err: any) {
+      const errorMessage = err.message || "Failed to update device";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader className="mb-4">
+            <DialogTitle>Edit Device</DialogTitle>
+            <DialogDescription>
+              Update the device's information below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            {error && (
+              <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
+                {error}
+              </div>
+            )}
+            <div className="grid gap-3">
+              <Label htmlFor="edit-uid">UID</Label>
+              <Input
+                id="edit-uid"
+                value={formData.uid}
+                onChange={(e) =>
+                  setFormData({ ...formData, uid: e.target.value })
+                }
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-3">
+              <Label htmlFor="edit-mac">MAC Address</Label>
+              <Input
+                id="edit-mac"
+                value={formData.mac_address}
+                onChange={(e) =>
+                  setFormData({ ...formData, mac_address: e.target.value })
+                }
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-3">
+              <Label htmlFor="edit-ip">IP Address</Label>
+              <Input
+                id="edit-ip"
+                value={formData.ip_address}
+                onChange={(e) =>
+                  setFormData({ ...formData, ip_address: e.target.value })
+                }
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-3">
+              <Label htmlFor="edit-model">Model</Label>
+              <Input
+                id="edit-model"
+                value={formData.model}
+                onChange={(e) =>
+                  setFormData({ ...formData, model: e.target.value })
+                }
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-3">
+              <Label htmlFor="edit-manufacturer">Manufacturer</Label>
+              <Input
+                id="edit-manufacturer"
+                value={formData.manufacturer}
+                onChange={(e) =>
+                  setFormData({ ...formData, manufacturer: e.target.value })
+                }
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-3">
+              <Label htmlFor="edit-serial">Serial Number</Label>
+              <Input
+                id="edit-serial"
+                value={formData.serial_number}
+                onChange={(e) =>
+                  setFormData({ ...formData, serial_number: e.target.value })
+                }
+                disabled={loading}
+              />
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------- Edit Group Dialog ----------------
+function EditGroupDialog({
+  group,
+  open,
+  onOpenChange,
+  onSave,
+}: {
+  group: Group;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (updatedGroup: Partial<Group>) => Promise<void>;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: group.name,
+    description: group.description,
+  });
+
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        name: group.name,
+        description: group.description,
+      });
+      setError(null);
+    }
+  }, [open, group]);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      await onSave(formData);
+      onOpenChange(false);
+      toast.success("Group updated successfully");
+    } catch (err: any) {
+      const errorMessage = err.message || "Failed to update group";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader className="mb-4">
+            <DialogTitle>Edit Group</DialogTitle>
+            <DialogDescription>
+              Update the group's information below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            {error && (
+              <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
+                {error}
+              </div>
+            )}
+            <div className="grid gap-3">
+              <Label htmlFor="edit-group-name">Name</Label>
+              <Input
+                id="edit-group-name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                disabled={loading}
+                required
+              />
+            </div>
+            <div className="grid gap-3">
+              <Label htmlFor="edit-group-description">Description</Label>
+              <Input
+                id="edit-group-description"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                disabled={loading}
+                required
+              />
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 // ---------------- Action Cell Component ----------------
-function ActionCell() {
+type ActionCellProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+  hideDelete?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+};
+
+function ActionCell({
+  canEdit = true,
+  canDelete = true,
+  hideDelete = false,
+  onEdit,
+  onDelete,
+}: ActionCellProps) {
+  if (!canEdit && (!canDelete || hideDelete)) return null;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -160,17 +592,28 @@ function ActionCell() {
           variant="ghost"
           size="icon"
           className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+          aria-label="Open actions menu"
         >
           <IconDotsVertical />
-          <span className="sr-only">Open menu</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-32">
-        <DropdownMenuItem>Edit</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive focus:text-destructive">
-          Delete
-        </DropdownMenuItem>
+        {canEdit && (
+          <DropdownMenuItem onClick={onEdit} className="cursor-pointer">
+            <IconEdit className="mr-2 h-4 w-4" />
+            Edit
+          </DropdownMenuItem>
+        )}
+        {canEdit && canDelete && <DropdownMenuSeparator />}
+        {canDelete && !hideDelete && (
+          <DropdownMenuItem
+            onClick={onDelete}
+            className="text-destructive focus:text-destructive cursor-pointer"
+          >
+            <IconTrash className="mr-2 h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -193,14 +636,16 @@ function AddDevicesDialog({ group }: { group: Group }) {
       try {
         const token = localStorage.getItem("accessToken");
 
-        const camerasRes = await fetch("http://172.16.0.157:5000/api/cameras", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        if (!token) throw new Error("No access token found");
 
-        const assignedRes = await fetch(
-          `http://172.16.0.157:5000/api/groups/${group.id}/devices`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const [camerasRes, assignedRes] = await Promise.all([
+          fetch(`${API_URL}/cameras`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_URL}/groups/${group.id}/devices`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
 
         if (!camerasRes.ok || !assignedRes.ok) {
           throw new Error("Failed to fetch data");
@@ -235,10 +680,12 @@ function AddDevicesDialog({ group }: { group: Group }) {
     try {
       const token = localStorage.getItem("accessToken");
 
-      // First, remove all existing devices from the group
+      if (!token) throw new Error("No access token found");
+
+      // Remove all existing devices
       const currentlyAssigned = cameras.map((c) => c.id);
       if (currentlyAssigned.length > 0) {
-        await fetch(`http://172.16.0.157:5000/api/groups/${group.id}/devices`, {
+        const deleteRes = await fetch(`${API_URL}/groups/${group.id}/devices`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -248,21 +695,22 @@ function AddDevicesDialog({ group }: { group: Group }) {
             cameraIds: currentlyAssigned,
           }),
         });
+
+        if (!deleteRes.ok) {
+          throw new Error("Failed to remove existing devices");
+        }
       }
 
-      // Then add the selected devices if any are selected
+      // Add selected devices
       if (selectedDevices.size > 0) {
-        const response = await fetch(
-          `http://172.16.0.157:5000/api/groups/${group.id}/devices`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ cameraIds: Array.from(selectedDevices) }),
-          }
-        );
+        const response = await fetch(`${API_URL}/groups/${group.id}/devices`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ cameraIds: Array.from(selectedDevices) }),
+        });
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -309,13 +757,14 @@ function AddDevicesDialog({ group }: { group: Group }) {
               </div>
             ) : (
               cameras.map((cam) => (
-                <div
+                <Label
                   key={cam.id}
-                  className="flex items-center gap-3 border-b py-3"
+                  className="hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950"
                 >
                   <Checkbox
                     checked={selectedDevices.has(cam.id)}
                     onCheckedChange={() => toggleDevice(cam.id)}
+                    className="data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
                     disabled={loading}
                   />
                   <div className="flex-1">
@@ -333,7 +782,7 @@ function AddDevicesDialog({ group }: { group: Group }) {
                       </div>
                     )}
                   </div>
-                </div>
+                </Label>
               ))
             )}
           </div>
@@ -412,83 +861,6 @@ function DateCell({ date }: { date: string }) {
 
   return <span>{formattedDate}</span>;
 }
-
-// ---------------- Columns ----------------
-const userColumns: ColumnDef<User>[] = [
-  {
-    accessorKey: "username",
-    header: "Username",
-  },
-  {
-    accessorKey: "role",
-    header: "Role",
-    cell: ({ row }) => <RoleBadge role={row.original.role} />,
-  },
-  {
-    accessorKey: "created_at",
-    header: "Created At",
-    cell: ({ row }) => <DateCell date={row.original.created_at} />,
-  },
-  {
-    accessorKey: "updated_at",
-    header: "Updated At",
-    cell: ({ row }) => <DateCell date={row.original.updated_at} />,
-  },
-  {
-    id: "actions",
-    header: () => null,
-    cell: () => <ActionCell />,
-    size: 50,
-  },
-];
-
-const deviceColumns: ColumnDef<Device>[] = [
-  { accessorKey: "uid", header: "UID" },
-  { accessorKey: "mac_address", header: "MAC Address" },
-  { accessorKey: "ip_address", header: "IP Address" },
-  { accessorKey: "firmware_version", header: "Firmware" },
-  { accessorKey: "model", header: "Model" },
-  { accessorKey: "manufacturer", header: "Manufacturer" },
-  { accessorKey: "serial_number", header: "Serial Number" },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ getValue }) => <StatusBadge status={getValue<boolean>()} />,
-  },
-  {
-    accessorKey: "assigned_at",
-    header: "Assigned At",
-    cell: ({ row }) => <DateCell date={row.original.assigned_at} />,
-  },
-  {
-    id: "actions",
-    header: () => null,
-    cell: () => <ActionCell />,
-    size: 50,
-  },
-];
-
-const groupColumns: ColumnDef<Group>[] = [
-  { accessorKey: "name", header: "Name" },
-  { accessorKey: "description", header: "Description" },
-  {
-    accessorKey: "created_at",
-    header: "Created At",
-    cell: ({ row }) => <DateCell date={row.original.created_at} />,
-  },
-  {
-    id: "addDevices",
-    header: "Devices",
-    cell: ({ row }) => <AddDevicesDialog group={row.original} />,
-    size: 120,
-  },
-  {
-    id: "actions",
-    header: () => null,
-    cell: () => <ActionCell />,
-    size: 50,
-  },
-];
 
 // ---------------- Reusable Components ----------------
 function DraggableRow({ row }: { row: Row<any> }) {
@@ -958,6 +1330,29 @@ export function DataTable({
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState("");
 
+  // Edit/Delete dialog states
+  const [editUserDialog, setEditUserDialog] = useState<{
+    open: boolean;
+    user: User | null;
+  }>({ open: false, user: null });
+
+  const [editDeviceDialog, setEditDeviceDialog] = useState<{
+    open: boolean;
+    device: Device | null;
+  }>({ open: false, device: null });
+
+  const [editGroupDialog, setEditGroupDialog] = useState<{
+    open: boolean;
+    group: Group | null;
+  }>({ open: false, group: null });
+
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    type: "user" | "device" | "group" | null;
+    item: any;
+    loading: boolean;
+  }>({ open: false, type: null, item: null, loading: false });
+
   // Data states
   const [userData, setUserData] = useState<User[]>(initUsers);
   const [deviceData, setDeviceData] = useState<Device[]>(initDevices);
@@ -1016,10 +1411,359 @@ export function DataTable({
     setGroupData(initGroups);
   }, [initGroups]);
 
+  const updateUser = async (id: number, updatedData: Partial<User>) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) throw new Error("No access token found");
+
+    const response = await fetch(`${API_URL}/users/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update user");
+    }
+
+    return response.json();
+  };
+
+  const updateDevice = async (id: number, updatedData: Partial<Device>) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) throw new Error("No access token found");
+
+    const response = await fetch(`${API_URL}/cameras/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update device");
+    }
+
+    return response.json();
+  };
+
+  const updateGroup = async (id: number, updatedData: Partial<Group>) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) throw new Error("No access token found");
+
+    const response = await fetch(`${API_URL}/groups/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update group");
+    }
+
+    return response.json();
+  };
+
+  const deleteUser = async (id: number) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) throw new Error("No access token found");
+
+    const response = await fetch(`${API_URL}/users/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to delete user");
+    }
+  };
+
+  const deleteDevice = async (id: number) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) throw new Error("No access token found");
+
+    const response = await fetch(`${API_URL}/cameras/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to delete device");
+    }
+  };
+
+  const deleteGroup = async (id: number) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) throw new Error("No access token found");
+
+    const response = await fetch(`${API_URL}/groups/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to delete group");
+    }
+  };
+
+  // ---------------- Edit Handlers ----------------
+  const handleEditUser = useCallback(
+    async (updatedData: Partial<User>) => {
+      if (!editUserDialog.user) return;
+
+      await updateUser(editUserDialog.user.id, updatedData);
+
+      // Update local state
+      setUserData((prev) =>
+        prev.map((user) =>
+          user.id === editUserDialog.user!.id
+            ? { ...user, ...updatedData }
+            : user
+        )
+      );
+
+      // Refresh data if callback provided
+      if (refreshUsers) {
+        await refreshUsers();
+      }
+    },
+    [editUserDialog.user, refreshUsers]
+  );
+
+  const handleEditDevice = useCallback(
+    async (updatedData: Partial<Device>) => {
+      if (!editDeviceDialog.device) return;
+
+      await updateDevice(editDeviceDialog.device.id, updatedData);
+
+      // Update local state
+      setDeviceData((prev) =>
+        prev.map((device) =>
+          device.id === editDeviceDialog.device!.id
+            ? { ...device, ...updatedData }
+            : device
+        )
+      );
+
+      // Refresh data if callback provided
+      if (refreshDevices) {
+        await refreshDevices();
+      }
+    },
+    [editDeviceDialog.device, refreshDevices]
+  );
+
+  const handleEditGroup = useCallback(
+    async (updatedData: Partial<Group>) => {
+      if (!editGroupDialog.group) return;
+
+      await updateGroup(editGroupDialog.group.id, updatedData);
+
+      // Update local state
+      setGroupData((prev) =>
+        prev.map((group) =>
+          group.id === editGroupDialog.group!.id
+            ? { ...group, ...updatedData }
+            : group
+        )
+      );
+
+      // Refresh data if callback provided
+      if (refreshGroups) {
+        await refreshGroups();
+      }
+    },
+    [editGroupDialog.group, refreshGroups]
+  );
+
+  // ---------------- Delete Handlers ----------------
+  const handleDelete = useCallback(async () => {
+    if (!deleteDialog.item || !deleteDialog.type) return;
+
+    setDeleteDialog((prev) => ({ ...prev, loading: true }));
+
+    try {
+      switch (deleteDialog.type) {
+        case "user":
+          await deleteUser(deleteDialog.item.id);
+          setUserData((prev) =>
+            prev.filter((user) => user.id !== deleteDialog.item.id)
+          );
+          if (refreshUsers) await refreshUsers();
+          toast.success("User deleted successfully");
+          break;
+        case "device":
+          await deleteDevice(deleteDialog.item.id);
+          setDeviceData((prev) =>
+            prev.filter((device) => device.id !== deleteDialog.item.id)
+          );
+          if (refreshDevices) await refreshDevices();
+          toast.success("Device deleted successfully");
+          break;
+        case "group":
+          await deleteGroup(deleteDialog.item.id);
+          setGroupData((prev) =>
+            prev.filter((group) => group.id !== deleteDialog.item.id)
+          );
+          if (refreshGroups) await refreshGroups();
+          toast.success("Group deleted successfully");
+          break;
+      }
+      setDeleteDialog({ open: false, type: null, item: null, loading: false });
+    } catch (err: any) {
+      const errorMessage =
+        err.message || `Failed to delete ${deleteDialog.type}`;
+      toast.error(errorMessage);
+      console.error(`Delete ${deleteDialog.type} error:`, err);
+    } finally {
+      setDeleteDialog((prev) => ({ ...prev, loading: false }));
+    }
+  }, [deleteDialog, refreshUsers, refreshDevices, refreshGroups]);
+
   // Memoized IDs for DnD
   const userIds = useMemo(() => userData.map((u) => u.id), [userData]);
   const deviceIds = useMemo(() => deviceData.map((d) => d.id), [deviceData]);
   const groupIds = useMemo(() => groupData.map((g) => g.id), [groupData]);
+
+  // ---------------- Columns ----------------
+  const userColumns: ColumnDef<User>[] = [
+    {
+      accessorKey: "username",
+      header: "Username",
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ row }) => <RoleBadge role={row.original.role} />,
+    },
+    {
+      accessorKey: "created_at",
+      header: "Created At",
+      cell: ({ row }) => <DateCell date={row.original.created_at} />,
+    },
+    {
+      accessorKey: "updated_at",
+      header: "Updated At",
+      cell: ({ row }) => <DateCell date={row.original.updated_at} />,
+    },
+    {
+      id: "actions",
+      header: () => null,
+      size: 50,
+      cell: ({ row }) => (
+        <ActionCell
+          canEdit
+          canDelete
+          onEdit={() => setEditUserDialog({ open: true, user: row.original })}
+          onDelete={() =>
+            setDeleteDialog({
+              open: true,
+              type: "user",
+              item: row.original,
+              loading: false,
+            })
+          }
+        />
+      ),
+    },
+  ];
+
+  const deviceColumns: ColumnDef<Device>[] = [
+    { accessorKey: "uid", header: "UID" },
+    { accessorKey: "mac_address", header: "MAC Address" },
+    { accessorKey: "ip_address", header: "IP Address" },
+    { accessorKey: "firmware_version", header: "Firmware" },
+    { accessorKey: "model", header: "Model" },
+    { accessorKey: "manufacturer", header: "Manufacturer" },
+    { accessorKey: "serial_number", header: "Serial Number" },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ getValue }) => <StatusBadge status={getValue<boolean>()} />,
+    },
+    {
+      accessorKey: "assigned_at",
+      header: "Assigned At",
+      cell: ({ row }) => <DateCell date={row.original.assigned_at} />,
+    },
+    {
+      id: "actions",
+      header: () => null,
+      cell: ({ row }) => (
+        <ActionCell
+          canEdit
+          canDelete
+          onEdit={() =>
+            setEditDeviceDialog({ open: true, device: row.original })
+          }
+          onDelete={() =>
+            setDeleteDialog({
+              open: true,
+              type: "device",
+              item: row.original,
+              loading: false,
+            })
+          }
+        />
+      ),
+      size: 50,
+    },
+  ];
+
+  const groupColumns: ColumnDef<Group>[] = [
+    { accessorKey: "name", header: "Name" },
+    { accessorKey: "description", header: "Description" },
+    {
+      id: "addDevices",
+      header: "Devices",
+      cell: ({ row }) => <AddDevicesDialog group={row.original} />,
+      size: 120,
+    },
+    {
+      accessorKey: "created_at",
+      header: "Created At",
+      cell: ({ row }) => <DateCell date={row.original.created_at} />,
+    },
+    {
+      id: "actions",
+      header: () => null,
+      cell: ({ row }) => (
+        <ActionCell
+          canEdit
+          canDelete
+          onEdit={() => setEditGroupDialog({ open: true, group: row.original })}
+          onDelete={() =>
+            setDeleteDialog({
+              open: true,
+              type: "group",
+              item: row.original,
+              loading: false,
+            })
+          }
+        />
+      ),
+      size: 50,
+    },
+  ];
 
   // Table instances
   const userTable = useReactTable({
@@ -1146,7 +1890,7 @@ export function DataTable({
         const token = localStorage.getItem("accessToken");
         if (!token) throw new Error("No access token found.");
 
-        const res = await fetch("http://172.16.0.157:5000/api/users", {
+        const res = await fetch(`${API_URL}/users`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1213,7 +1957,7 @@ export function DataTable({
 
         const body = uid ? { uid } : { mac_address };
 
-        const res = await fetch("http://172.16.0.157:5000/api/cameras", {
+        const res = await fetch(`${API_URL}/cameras`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1273,7 +2017,7 @@ export function DataTable({
         const token = localStorage.getItem("accessToken");
         if (!token) throw new Error("No access token found.");
 
-        const res = await fetch("http://172.16.0.157:5000/api/groups", {
+        const res = await fetch(`${API_URL}/groups`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1350,154 +2094,183 @@ export function DataTable({
   ]);
 
   return (
-    <Tabs
-      value={activeTab}
-      onValueChange={setActiveTab}
-      className="w-full flex-col justify-start gap-6"
-    >
-      {/* Header Controls */}
-      <div className="flex items-center justify-between px-4 lg:px-6">
-        <Label htmlFor="view-selector" className="sr-only">
-          View
-        </Label>
+    <>
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full flex-col justify-start gap-6"
+      >
+        {/* Header Controls */}
+        <div className="flex items-center justify-between px-4 lg:px-6">
+          <Label htmlFor="view-selector" className="sr-only">
+            View
+          </Label>
 
-        {/* Mobile Select */}
-        <Select value={activeTab} onValueChange={setActiveTab}>
-          <SelectTrigger
-            className="flex w-fit @4xl/main:hidden"
-            size="sm"
-            id="view-selector"
-          >
-            <SelectValue placeholder="Select a view" />
-          </SelectTrigger>
-          <SelectContent>
-            {tabOptions.map((tab) => (
-              <SelectItem key={tab} value={tab}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Desktop Tabs */}
-        <TabsList className="hidden @4xl/main:flex">
-          {tabOptions.map((tab) => (
-            <TabsTrigger key={tab} value={tab}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              <Badge variant="secondary" className="ml-2">
-                {tabCounts[tab as keyof typeof tabCounts] ?? 0}
-              </Badge>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {/* Column Controls + Add Button */}
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <IconLayoutColumns />
-                <span className="hidden lg:inline">Customize Columns</span>
-                <span className="lg:hidden">Columns</span>
-                <IconChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {getVisibleColumns(activeTable).map((column) => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                >
-                  {column.id
-                    .replace(/_/g, " ")
-                    .replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                </DropdownMenuCheckboxItem>
+          {/* Mobile Select */}
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger
+              className="flex w-fit @4xl/main:hidden"
+              size="sm"
+              id="view-selector"
+            >
+              <SelectValue placeholder="Select a view" />
+            </SelectTrigger>
+            <SelectContent>
+              {tabOptions.map((tab) => (
+                <SelectItem key={tab} value={tab}>
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </SelectItem>
               ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </SelectContent>
+          </Select>
 
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <IconPlus />
-                <span className="hidden lg:inline">
-                  Add{" "}
-                  {activeTab === "users"
-                    ? "User"
-                    : activeTab === "devices"
-                      ? "Device"
-                      : "Group"}
-                </span>
-                <span className="lg:hidden">
-                  {activeTab === "users"
-                    ? "User"
-                    : activeTab === "devices"
-                      ? "Device"
-                      : "Group"}
-                </span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              {activeTab === "users" && (
-                <AddUserForm
-                  onSubmit={handleAddUser}
-                  loading={loading}
-                  error={error}
-                  role={role}
-                  setRole={setRole}
-                />
-              )}
+          {/* Desktop Tabs */}
+          <TabsList className="hidden @4xl/main:flex">
+            {tabOptions.map((tab) => (
+              <TabsTrigger key={tab} value={tab}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                <Badge variant="secondary" className="ml-2">
+                  {tabCounts[tab as keyof typeof tabCounts] ?? 0}
+                </Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-              {activeTab === "devices" && (
-                <AddDeviceForm
-                  onSubmit={handleAddDevice}
-                  loading={loading}
-                  error={error}
-                />
-              )}
+          {/* Column Controls + Add Button */}
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <IconLayoutColumns />
+                  <span className="hidden lg:inline">Customize Columns</span>
+                  <span className="lg:hidden">Columns</span>
+                  <IconChevronDown />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {getVisibleColumns(activeTable).map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(!!value)
+                    }
+                  >
+                    {column.id
+                      .replace(/_/g, " ")
+                      .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-              {activeTab === "groups" && (
-                <AddGroupForm
-                  onSubmit={handleAddGroup}
-                  loading={loading}
-                  error={error}
-                />
-              )}
-            </DialogContent>
-          </Dialog>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <IconPlus />
+                  <span className="hidden lg:inline">
+                    Add{" "}
+                    {activeTab === "users"
+                      ? "User"
+                      : activeTab === "devices"
+                        ? "Device"
+                        : "Group"}
+                  </span>
+                  <span className="lg:hidden">
+                    {activeTab === "users"
+                      ? "User"
+                      : activeTab === "devices"
+                        ? "Device"
+                        : "Group"}
+                  </span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                {activeTab === "users" && (
+                  <AddUserForm
+                    onSubmit={handleAddUser}
+                    loading={loading}
+                    error={error}
+                    role={role}
+                    setRole={setRole}
+                  />
+                )}
+
+                {activeTab === "devices" && (
+                  <AddDeviceForm
+                    onSubmit={handleAddDevice}
+                    loading={loading}
+                    error={error}
+                  />
+                )}
+
+                {activeTab === "groups" && (
+                  <AddGroupForm
+                    onSubmit={handleAddGroup}
+                    loading={loading}
+                    error={error}
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-      </div>
 
-      {/* Tab Content */}
-      {tabOptions.map((tab) => {
-        const currentTable = tables[tab as keyof typeof tables];
-        const currentIds =
-          tab === "users" ? userIds : tab === "devices" ? deviceIds : groupIds;
-        const currentColumns =
-          tab === "users"
-            ? userColumns
-            : tab === "devices"
-              ? deviceColumns
-              : groupColumns;
+        {/* Tab Content */}
+        {tabOptions.map((tab) => {
+          const currentTable = tables[tab as keyof typeof tables];
+          const currentIds =
+            tab === "users"
+              ? userIds
+              : tab === "devices"
+                ? deviceIds
+                : groupIds;
+          const currentColumns =
+            tab === "users"
+              ? userColumns
+              : tab === "devices"
+                ? deviceColumns
+                : groupColumns;
 
-        return (
-          <TabsContent
-            key={tab}
-            value={tab}
-            className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
-          >
-            <TableWrapper
-              table={currentTable}
-              columns={currentColumns}
-              ids={currentIds}
-              sensors={sensors}
-              onDragEnd={handleDragEnd}
-            />
-            <PaginationControls table={currentTable} idPrefix={tab} />
-          </TabsContent>
-        );
-      })}
-    </Tabs>
+          return (
+            <TabsContent
+              key={tab}
+              value={tab}
+              className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
+            >
+              <TableWrapper
+                table={currentTable}
+                columns={currentColumns}
+                ids={currentIds}
+                sensors={sensors}
+                onDragEnd={handleDragEnd}
+              />
+              <PaginationControls table={currentTable} idPrefix={tab} />
+            </TabsContent>
+          );
+        })}
+      </Tabs>
+      {/* Edit Dialogs
+      <EditUserDialog
+        user={editUserDialog.user!}
+        open={editUserDialog.open}
+        onOpenChange={(open) => setEditUserDialog({ open, user: null })}
+        onSave={handleEditUser}
+      />
+
+      <EditDeviceDialog
+        device={editDeviceDialog.device!}
+        open={editDeviceDialog.open}
+        onOpenChange={(open) => setEditDeviceDialog({ open, device: null })}
+        onSave={handleEditDevice}
+      />
+
+      <EditGroupDialog
+        group={editGroupDialog.group!}
+        open={editGroupDialog.open}
+        onOpenChange={(open) => setEditGroupDialog({ open, group: null })}
+        onSave={handleEditGroup}
+      /> */}
+    </>
   );
 }
