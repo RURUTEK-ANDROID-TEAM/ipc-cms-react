@@ -1,18 +1,22 @@
 import {
   IconAdjustments,
-  IconAlertHexagon,
+  IconAi,
   IconArrowBackUp,
+  IconCalendarClock,
   IconCamera,
+  IconCar,
   IconDashboard,
   IconDatabase,
-  IconDevices,
+  IconFaceId,
   IconFileAi,
   IconFileDescription,
   IconFileWord,
   IconHelp,
-  IconInnerShadowTop,
   IconReport,
   IconSettings,
+  IconTemperatureSun,
+  IconTimelineEventPlus,
+  IconUsers,
   IconVideo,
 } from "@tabler/icons-react";
 import {
@@ -27,11 +31,12 @@ import {
 import { NavMain } from "./nav-main";
 import { NavSecondary } from "./nav-secondary";
 import { NavUser } from "./nav-user";
+import { NavDocuments } from "./nav-documents";
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
+    name: "admin",
+    email: "admin@example.com",
     avatar: "",
   },
   navMain: [
@@ -55,6 +60,16 @@ const data = {
       url: "/dashboard/management",
       icon: IconAdjustments,
     },
+    {
+      title: "Events",
+      url: "",
+      icon: IconTimelineEventPlus,
+    },
+    // {
+    //   title: "AI Features",
+    //   url: "",
+    //   icon: IconAi,
+    // },
   ],
   navClouds: [
     {
@@ -118,19 +133,34 @@ const data = {
   ],
   documents: [
     {
-      name: "Data Library",
+      name: "Faces",
       url: "#",
-      icon: IconDatabase,
+      icon: IconFaceId,
     },
     {
-      name: "Reports",
+      name: "Heat Maps",
       url: "#",
-      icon: IconReport,
+      icon: IconTemperatureSun,
     },
     {
-      name: "Word Assistant",
+      name: "People",
       url: "#",
-      icon: IconFileWord,
+      icon: IconUsers,
+    },
+    {
+      name: "Visitors",
+      url: "#",
+      icon: IconUsers,
+    },
+    {
+      name: "ANPR",
+      url: "#",
+      icon: IconCar,
+    },
+    {
+      name: "Timelapse",
+      url: "#",
+      icon: IconCalendarClock,
     },
   ],
 };
@@ -161,7 +191,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        {/* <NavDocuments items={data.documents} /> */}
+        <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

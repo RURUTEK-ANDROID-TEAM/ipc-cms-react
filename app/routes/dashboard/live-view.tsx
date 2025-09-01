@@ -498,6 +498,11 @@ const LiveView = () => {
                       }
                     }}
                   />
+                  <div className="absolute bottom-0 left-0 right-0 text-white text-xs px-3 py-2 flex flex-col gap-0.5">
+                    <div className="font-medium truncate">
+                      {uid || "Unknown UID"}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}

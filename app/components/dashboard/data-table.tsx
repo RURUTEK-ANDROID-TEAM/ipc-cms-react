@@ -75,8 +75,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -93,21 +94,21 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../ui/dialog";
-import { Input } from "../ui/input";
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Group, UserPlus, Video } from "lucide-react";
 import { toast } from "sonner";
-import { Checkbox } from "../ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
+  AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "../ui/alert-dialog";
-import { AlertDialogContent } from "@radix-ui/react-alert-dialog";
+} from "@/components/ui/alert-dialog";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -148,6 +149,12 @@ type User = z.infer<typeof userSchema>;
 type Device = z.infer<typeof deviceSchema>;
 type Group = z.infer<typeof groupSchema>;
 
+interface AddDevicesDialogProps {
+  group: Group | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
 // ---------------- Delete Confirmation Dialog ----------
 function DeleteConfirmationDialog({
   open,
@@ -176,7 +183,7 @@ function DeleteConfirmationDialog({
           <AlertDialogAction
             onClick={onConfirm}
             disabled={loading}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-destructive text-destructive-foreground text-white hover:bg-destructive/90"
           >
             {loading ? "Deleting..." : "Delete"}
           </AlertDialogAction>
@@ -193,7 +200,7 @@ function EditUserDialog({
   onOpenChange,
   onSave,
 }: {
-  user: User;
+  user: User | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (updatedUser: Partial<User>) => Promise<void>;
@@ -201,12 +208,12 @@ function EditUserDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    username: user.username,
-    role: user.role,
+    username: "",
+    role: "",
   });
 
   useEffect(() => {
-    if (open) {
+    if (open && user) {
       setFormData({
         username: user.username,
         role: user.role,
@@ -217,6 +224,8 @@ function EditUserDialog({
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
+
     setError(null);
     setLoading(true);
 
@@ -232,6 +241,8 @@ function EditUserDialog({
       setLoading(false);
     }
   };
+
+  if (!user) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -310,7 +321,7 @@ function EditDeviceDialog({
   onOpenChange,
   onSave,
 }: {
-  device: Device;
+  device: Device | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (updatedDevice: Partial<Device>) => Promise<void>;
@@ -318,23 +329,23 @@ function EditDeviceDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    uid: device.uid,
-    mac_address: device.mac_address,
-    ip_address: device.ip_address,
-    model: device.model,
-    manufacturer: device.manufacturer,
-    serial_number: device.serial_number,
+    uid: "",
+    mac_address: "",
+    ip_address: "",
+    model: "",
+    manufacturer: "",
+    serial_number: "",
   });
 
   useEffect(() => {
-    if (open) {
+    if (open && device) {
       setFormData({
-        uid: device.uid,
-        mac_address: device.mac_address,
-        ip_address: device.ip_address,
-        model: device.model,
-        manufacturer: device.manufacturer,
-        serial_number: device.serial_number,
+        uid: device.uid || "",
+        mac_address: device.mac_address || "",
+        ip_address: device.ip_address || "",
+        model: device.model || "",
+        manufacturer: device.manufacturer || "",
+        serial_number: device.serial_number || "",
       });
       setError(null);
     }
@@ -342,6 +353,8 @@ function EditDeviceDialog({
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!device) return;
+
     setError(null);
     setLoading(true);
 
@@ -357,6 +370,8 @@ function EditDeviceDialog({
       setLoading(false);
     }
   };
+
+  if (!device) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -467,7 +482,7 @@ function EditGroupDialog({
   onOpenChange,
   onSave,
 }: {
-  group: Group;
+  group: Group | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (updatedGroup: Partial<Group>) => Promise<void>;
@@ -475,12 +490,12 @@ function EditGroupDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: group.name,
-    description: group.description,
+    name: "",
+    description: "",
   });
 
   useEffect(() => {
-    if (open) {
+    if (open && group) {
       setFormData({
         name: group.name,
         description: group.description,
@@ -491,6 +506,8 @@ function EditGroupDialog({
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!group) return;
+
     setError(null);
     setLoading(true);
 
@@ -506,6 +523,8 @@ function EditGroupDialog({
       setLoading(false);
     }
   };
+
+  if (!group) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -598,13 +617,13 @@ function ActionCell({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-32">
-        {canEdit && (
+        {/* {canEdit && (
           <DropdownMenuItem onClick={onEdit} className="cursor-pointer">
             <IconEdit className="mr-2 h-4 w-4" />
             Edit
           </DropdownMenuItem>
         )}
-        {canEdit && canDelete && <DropdownMenuSeparator />}
+        {canEdit && canDelete && <DropdownMenuSeparator />} */}
         {canDelete && !hideDelete && (
           <DropdownMenuItem
             onClick={onDelete}
@@ -619,44 +638,53 @@ function ActionCell({
   );
 }
 
-// ---------------- FIXED Add Devices Dialog Component ----------------
-function AddDevicesDialog({ group }: { group: Group }) {
-  const [open, setOpen] = useState(false);
+// ---------------- Add Devices Dialog Component ----------------
+function AddDevicesDialog({
+  group,
+  open,
+  onOpenChange,
+}: AddDevicesDialogProps) {
   const [cameras, setCameras] = useState<Device[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<Set<number>>(
     new Set()
   );
+  const [prevAssigned, setPrevAssigned] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
 
+  // Fetch devices when dialog opens
   useEffect(() => {
-    if (!open) return;
+    if (!open || !group) return;
 
     const fetchData = async () => {
       setLoading(true);
       try {
         const token = localStorage.getItem("accessToken");
-
         if (!token) throw new Error("No access token found");
 
-        const [camerasRes, assignedRes] = await Promise.all([
-          fetch(`${API_URL}/cameras`, {
+        const camerasRes = await fetch(`${API_URL}/cameras`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const assignedRes = await fetch(
+          `${API_URL}/groups/${group.id}/devices`,
+          {
             headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${API_URL}/groups/${group.id}/devices`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+          }
+        );
 
         if (!camerasRes.ok || !assignedRes.ok) {
           throw new Error("Failed to fetch data");
         }
 
-        const camerasData = await camerasRes.json();
-        const assignedData = await assignedRes.json();
+        const camerasData: Device[] = await camerasRes.json();
+        const assignedData: Device[] = await assignedRes.json();
 
         setCameras(camerasData);
-        // Extract camera_id from the assigned devices response
-        setSelectedDevices(new Set(assignedData.map((d: any) => d.camera_id)));
+
+        // ✅ Always use camera_id
+        const assignedSet = new Set(assignedData.map((cam) => cam.camera_id));
+        setSelectedDevices(assignedSet);
+        setPrevAssigned(assignedSet);
       } catch (e) {
         console.error(e);
         toast.error("Failed to load cameras");
@@ -666,60 +694,64 @@ function AddDevicesDialog({ group }: { group: Group }) {
     };
 
     fetchData();
-  }, [open, group.id]);
+  }, [open, group]);
 
-  const toggleDevice = (id: number) => {
-    const copy = new Set(selectedDevices);
-    if (copy.has(id)) copy.delete(id);
-    else copy.add(id);
-    setSelectedDevices(copy);
+  const toggleDevice = (cameraId: number) => {
+    setSelectedDevices((prev) => {
+      const copy = new Set(prev);
+      if (copy.has(cameraId)) copy.delete(cameraId);
+      else copy.add(cameraId);
+      return copy;
+    });
   };
 
   const handleSave = async () => {
+    if (!group) return;
     setLoading(true);
+
     try {
       const token = localStorage.getItem("accessToken");
-
       if (!token) throw new Error("No access token found");
 
-      // Remove all existing devices
-      const currentlyAssigned = cameras.map((c) => c.id);
-      if (currentlyAssigned.length > 0) {
+      const current = Array.from(selectedDevices);
+      const previous = Array.from(prevAssigned);
+
+      const toAdd = current.filter((id) => !prevAssigned.has(id));
+      const toRemove = previous.filter((id) => !selectedDevices.has(id));
+
+      // 🔴 Remove unchecked
+      if (toRemove.length > 0) {
         const deleteRes = await fetch(`${API_URL}/groups/${group.id}/devices`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            cameraIds: currentlyAssigned,
-          }),
+          body: JSON.stringify({ cameraIds: toRemove }),
         });
 
-        if (!deleteRes.ok) {
-          throw new Error("Failed to remove existing devices");
-        }
+        if (!deleteRes.ok) throw new Error("Failed to remove devices");
       }
 
-      // Add selected devices
-      if (selectedDevices.size > 0) {
+      // 🟢 Add newly checked
+      if (toAdd.length > 0) {
         const response = await fetch(`${API_URL}/groups/${group.id}/devices`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ cameraIds: Array.from(selectedDevices) }),
+          body: JSON.stringify({ cameraIds: toAdd }),
         });
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to update devices");
+          throw new Error(errorData.message || "Failed to add devices");
         }
       }
 
       toast.success("Devices updated successfully");
-      setOpen(false);
+      onOpenChange(false);
     } catch (err) {
       console.error(err);
       toast.error(
@@ -730,13 +762,10 @@ function AddDevicesDialog({ group }: { group: Group }) {
     }
   };
 
+  if (!group) return null;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          Manage Devices
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Manage Devices for {group.name}</DialogTitle>
@@ -757,14 +786,13 @@ function AddDevicesDialog({ group }: { group: Group }) {
               </div>
             ) : (
               cameras.map((cam) => (
-                <Label
-                  key={cam.id}
-                  className="hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950"
+                <div
+                  key={cam.camera_id}
+                  className="flex items-center gap-3 border-b py-3"
                 >
                   <Checkbox
-                    checked={selectedDevices.has(cam.id)}
-                    onCheckedChange={() => toggleDevice(cam.id)}
-                    className="data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
+                    checked={selectedDevices.has(cam.camera_id)}
+                    onCheckedChange={() => toggleDevice(cam.camera_id)}
                     disabled={loading}
                   />
                   <div className="flex-1">
@@ -775,14 +803,13 @@ function AddDevicesDialog({ group }: { group: Group }) {
                       Serial: {cam.serial_number || "No Serial"} • MAC:{" "}
                       {cam.mac_address || "No MAC"}
                     </div>
-                    {cam.uid && (
+                    {cam.model && (
                       <div className="text-xs text-muted-foreground">
-                        Model: {cam.model || "N/A"} • IP:{" "}
-                        {cam.ip_address || "N/A"}
+                        Model: {cam.model} • IP: {cam.ip_address || "N/A"}
                       </div>
                     )}
                   </div>
-                </Label>
+                </div>
               ))
             )}
           </div>
@@ -796,7 +823,7 @@ function AddDevicesDialog({ group }: { group: Group }) {
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => setOpen(false)}
+            onClick={() => onOpenChange(false)}
             disabled={loading}
           >
             Cancel
@@ -885,99 +912,6 @@ function DraggableRow({ row }: { row: Row<any> }) {
   );
 }
 
-function PaginationControls({
-  table,
-  idPrefix,
-}: {
-  table: ReturnType<typeof useReactTable<any>>;
-  idPrefix: string;
-}) {
-  const { pageIndex, pageSize } = table.getState().pagination;
-  const pageCount = table.getPageCount();
-  const filteredRowCount = table.getFilteredRowModel().rows.length;
-
-  return (
-    <div className="flex items-center justify-between px-4">
-      <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
-        {filteredRowCount} row(s).
-      </div>
-      <div className="flex w-full items-center gap-8 lg:w-fit">
-        <div className="hidden items-center gap-2 lg:flex">
-          <Label
-            htmlFor={`${idPrefix}-rows-per-page`}
-            className="text-sm font-medium"
-          >
-            Rows per page
-          </Label>
-          <Select
-            value={`${pageSize}`}
-            onValueChange={(value) => table.setPageSize(Number(value))}
-          >
-            <SelectTrigger
-              size="sm"
-              className="w-20"
-              id={`${idPrefix}-rows-per-page`}
-            >
-              <SelectValue placeholder={pageSize} />
-            </SelectTrigger>
-            <SelectContent side="top">
-              {[10, 20, 30, 40, 50].map((size) => (
-                <SelectItem key={size} value={`${size}`}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex w-fit items-center justify-center text-sm font-medium">
-          Page {pageIndex + 1} of {pageCount}
-        </div>
-        <div className="ml-auto flex items-center gap-2 lg:ml-0">
-          <Button
-            variant="outline"
-            className="hidden h-8 w-8 p-0 lg:flex"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <IconChevronsLeft />
-            <span className="sr-only">Go to first page</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="size-8"
-            size="icon"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <IconChevronLeft />
-            <span className="sr-only">Go to previous page</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="size-8"
-            size="icon"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <IconChevronRight />
-            <span className="sr-only">Go to next page</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="hidden size-8 lg:flex"
-            size="icon"
-            onClick={() => table.setPageIndex(pageCount - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            <IconChevronsRight />
-            <span className="sr-only">Go to last page</span>
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function TableWrapper({
   table,
   columns,
@@ -1061,7 +995,6 @@ function AddUserForm({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Reset form when not loading and no error
   useEffect(() => {
     if (!loading && !error && formRef.current) {
       formRef.current.reset();
@@ -1153,7 +1086,6 @@ function AddDeviceForm({
   const [macAddress, setMacAddress] = useState("");
   const [uid, setUid] = useState("");
 
-  // Reset form when not loading and no error
   useEffect(() => {
     if (!loading && !error && formRef.current) {
       formRef.current.reset();
@@ -1162,7 +1094,6 @@ function AddDeviceForm({
     }
   }, [loading, error]);
 
-  // Check if at least one identifier is filled
   const canSubmit = macAddress || uid;
 
   return (
@@ -1233,7 +1164,6 @@ function AddGroupForm({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
-  // Reset form when not loading and no error
   useEffect(() => {
     if (!loading && !error && formRef.current) {
       formRef.current.reset();
@@ -1242,7 +1172,6 @@ function AddGroupForm({
     }
   }, [loading, error]);
 
-  // Both fields are required for groups
   const canSubmit = name && description;
 
   return (
@@ -1301,6 +1230,99 @@ function AddGroupForm({
   );
 }
 
+// ---------------- Pagination Controls ----------------
+function PaginationControls({
+  table,
+  idPrefix,
+}: {
+  table: ReturnType<typeof useReactTable<any>>;
+  idPrefix: string;
+}) {
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const pageCount = table.getPageCount();
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+
+  return (
+    <div className="flex items-center justify-between px-4">
+      <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
+        {filteredRowCount} row(s).
+      </div>
+      <div className="flex w-full items-center gap-8 lg:w-fit">
+        <div className="hidden items-center gap-2 lg:flex">
+          <Label
+            htmlFor={`${idPrefix}-rows-per-page`}
+            className="text-sm font-medium"
+          >
+            Rows per page
+          </Label>
+          <Select
+            value={`${pageSize}`}
+            onValueChange={(value) => table.setPageSize(Number(value))}
+          >
+            <SelectTrigger
+              size="sm"
+              className="w-20"
+              id={`${idPrefix}-rows-per-page`}
+            >
+              <SelectValue placeholder={pageSize} />
+            </SelectTrigger>
+            <SelectContent side="top">
+              {[10, 20, 30, 40, 50].map((size) => (
+                <SelectItem key={size} value={`${size}`}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex w-fit items-center justify-center text-sm font-medium">
+          Page {pageIndex + 1} of {pageCount}
+        </div>
+        <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          <Button
+            variant="outline"
+            className="hidden h-8 w-8 p-0 lg:flex"
+            onClick={() => table.setPageIndex(0)}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <IconChevronsLeft />
+            <span className="sr-only">Go to first page</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="size-8"
+            size="icon"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <IconChevronLeft />
+            <span className="sr-only">Go to previous page</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="size-8"
+            size="icon"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            <IconChevronRight />
+            <span className="sr-only">Go to next page</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="hidden h-8 w-8 p-0 lg:flex"
+            onClick={() => table.setPageIndex(pageCount - 1)}
+            disabled={!table.getCanNextPage()}
+          >
+            <IconChevronsRight />
+            <span className="sr-only">Go to last page</span>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------------- Main Component ----------------
 export function DataTable({
   users: initUsers = [],
@@ -1329,6 +1351,10 @@ export function DataTable({
   });
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState("");
+
+  // Manage devices dialog state
+  const [manageDevicesOpen, setManageDevicesOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
 
   // Edit/Delete dialog states
   const [editUserDialog, setEditUserDialog] = useState<{
@@ -1398,7 +1424,7 @@ export function DataTable({
     }
   }, [open]);
 
-  // Sync state with props (only on mount)
+  // Sync state with props
   useEffect(() => {
     setUserData(initUsers);
   }, [initUsers]);
@@ -1411,6 +1437,7 @@ export function DataTable({
     setGroupData(initGroups);
   }, [initGroups]);
 
+  // API Handlers
   const updateUser = async (id: number, updatedData: Partial<User>) => {
     const token = localStorage.getItem("accessToken");
     if (!token) throw new Error("No access token found");
@@ -1525,14 +1552,13 @@ export function DataTable({
     }
   };
 
-  // ---------------- Edit Handlers ----------------
+  // Edit Handlers
   const handleEditUser = useCallback(
     async (updatedData: Partial<User>) => {
       if (!editUserDialog.user) return;
 
       await updateUser(editUserDialog.user.id, updatedData);
 
-      // Update local state
       setUserData((prev) =>
         prev.map((user) =>
           user.id === editUserDialog.user!.id
@@ -1541,7 +1567,6 @@ export function DataTable({
         )
       );
 
-      // Refresh data if callback provided
       if (refreshUsers) {
         await refreshUsers();
       }
@@ -1555,7 +1580,6 @@ export function DataTable({
 
       await updateDevice(editDeviceDialog.device.id, updatedData);
 
-      // Update local state
       setDeviceData((prev) =>
         prev.map((device) =>
           device.id === editDeviceDialog.device!.id
@@ -1564,7 +1588,6 @@ export function DataTable({
         )
       );
 
-      // Refresh data if callback provided
       if (refreshDevices) {
         await refreshDevices();
       }
@@ -1578,7 +1601,6 @@ export function DataTable({
 
       await updateGroup(editGroupDialog.group.id, updatedData);
 
-      // Update local state
       setGroupData((prev) =>
         prev.map((group) =>
           group.id === editGroupDialog.group!.id
@@ -1587,7 +1609,6 @@ export function DataTable({
         )
       );
 
-      // Refresh data if callback provided
       if (refreshGroups) {
         await refreshGroups();
       }
@@ -1595,7 +1616,7 @@ export function DataTable({
     [editGroupDialog.group, refreshGroups]
   );
 
-  // ---------------- Delete Handlers ----------------
+  // Delete Handler
   const handleDelete = useCallback(async () => {
     if (!deleteDialog.item || !deleteDialog.type) return;
 
@@ -1644,7 +1665,7 @@ export function DataTable({
   const deviceIds = useMemo(() => deviceData.map((d) => d.id), [deviceData]);
   const groupIds = useMemo(() => groupData.map((g) => g.id), [groupData]);
 
-  // ---------------- Columns ----------------
+  // Columns
   const userColumns: ColumnDef<User>[] = [
     {
       accessorKey: "username",
@@ -1735,7 +1756,18 @@ export function DataTable({
     {
       id: "addDevices",
       header: "Devices",
-      cell: ({ row }) => <AddDevicesDialog group={row.original} />,
+      cell: ({ row }) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setSelectedGroup(row.original);
+            setManageDevicesOpen(true);
+          }}
+        >
+          Manage Devices
+        </Button>
+      ),
       size: 120,
     },
     {
@@ -2250,27 +2282,48 @@ export function DataTable({
           );
         })}
       </Tabs>
-      {/* Edit Dialogs
+
+      {/* Single Manage Devices Dialog */}
+      <AddDevicesDialog
+        group={selectedGroup}
+        open={manageDevicesOpen}
+        onOpenChange={(open) => {
+          setManageDevicesOpen(open);
+          if (!open) setSelectedGroup(null);
+        }}
+      />
+
+      {/* Edit Dialogs */}
       <EditUserDialog
-        user={editUserDialog.user!}
+        user={editUserDialog.user}
         open={editUserDialog.open}
         onOpenChange={(open) => setEditUserDialog({ open, user: null })}
         onSave={handleEditUser}
       />
 
       <EditDeviceDialog
-        device={editDeviceDialog.device!}
+        device={editDeviceDialog.device}
         open={editDeviceDialog.open}
         onOpenChange={(open) => setEditDeviceDialog({ open, device: null })}
         onSave={handleEditDevice}
       />
 
       <EditGroupDialog
-        group={editGroupDialog.group!}
+        group={editGroupDialog.group}
         open={editGroupDialog.open}
         onOpenChange={(open) => setEditGroupDialog({ open, group: null })}
         onSave={handleEditGroup}
-      /> */}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteDialog.open}
+        openChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}
+        onConfirm={handleDelete}
+        loading={deleteDialog.loading}
+        title={`Delete ${deleteDialog.type?.charAt(0).toUpperCase()}${deleteDialog.type?.slice(1) || ""}`}
+        description={`Are you sure you want to delete this ${deleteDialog.type}? This action cannot be undone.`}
+      />
     </>
   );
 }
