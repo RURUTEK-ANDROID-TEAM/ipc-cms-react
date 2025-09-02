@@ -1,4 +1,4 @@
-import { SectionCards } from "@/components/dashboard/section-cards";
+import { SectionCards } from "@/components/dashboard/sections/section-cards";
 import Management from "./management";
 
 export default function Dashboard() {

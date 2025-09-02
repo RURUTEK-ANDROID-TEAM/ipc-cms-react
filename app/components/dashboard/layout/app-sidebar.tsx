@@ -1,18 +1,14 @@
 import {
   IconAdjustments,
-  IconAi,
   IconArrowBackUp,
   IconCalendarClock,
   IconCamera,
   IconCar,
   IconDashboard,
-  IconDatabase,
   IconFaceId,
   IconFileAi,
   IconFileDescription,
-  IconFileWord,
   IconHelp,
-  IconReport,
   IconSettings,
   IconTemperatureSun,
   IconTimelineEventPlus,
@@ -27,11 +23,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "../ui/sidebar";
-import { NavMain } from "./nav-main";
-import { NavSecondary } from "./nav-secondary";
-import { NavUser } from "./nav-user";
-import { NavDocuments } from "./nav-documents";
+} from "../../ui/sidebar";
+import { NavMain } from "../navigation/nav-main";
+import { NavSecondary } from "../navigation/nav-secondary";
+import { NavUser } from "../navigation/nav-user";
+import { NavAIFeatures } from "../navigation/nav-ai-features";
 
 const data = {
   user: {
@@ -62,14 +58,9 @@ const data = {
     },
     {
       title: "Events",
-      url: "",
+      url: "#",
       icon: IconTimelineEventPlus,
     },
-    // {
-    //   title: "AI Features",
-    //   url: "",
-    //   icon: IconAi,
-    // },
   ],
   navClouds: [
     {
@@ -191,7 +182,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
+        <NavAIFeatures items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

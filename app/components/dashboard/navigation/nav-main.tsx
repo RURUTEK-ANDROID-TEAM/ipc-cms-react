@@ -8,7 +8,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavLink, useLocation } from "react-router";
-import type React from "react";
 
 interface NavItem {
   title: string;

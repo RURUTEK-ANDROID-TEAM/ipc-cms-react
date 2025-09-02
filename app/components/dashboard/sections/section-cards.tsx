@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Video, VideoOffIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Skeleton } from "../ui/skeleton";
 
 export function SectionCards() {
   const [totalCameraCount, setTotalCameraCount] = useState<number | null>(null);

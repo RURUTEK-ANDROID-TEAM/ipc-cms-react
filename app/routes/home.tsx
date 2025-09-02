@@ -1,5 +1,5 @@
-import type { Route } from "./+types/routes";
-import Login from "./auth/login";
+import type { Route } from "./+types/routes/pages";
+import Login from "./auth/pages/login";
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "New React Router App" },

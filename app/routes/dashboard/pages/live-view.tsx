@@ -481,27 +481,30 @@ const LiveView = () => {
                 <div id={`streamContainer-${uid}`} className="w-full h-full" />
                 <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                   <Video className="absolute top-2 left-2 text-white w-6 h-6 cursor-pointer" />
-                  <Maximize
-                    className="absolute bottom-2 right-2 text-white w-6 h-6 cursor-pointer"
-                    onClick={() => {
-                      const container = document.getElementById(
-                        `streamContainer-${uid}`
-                      );
-                      if (container) {
-                        if (container.requestFullscreen) {
-                          container.requestFullscreen();
-                        } else if ((container as any).webkitRequestFullscreen) {
-                          (container as any).webkitRequestFullscreen();
-                        } else if ((container as any).msRequestFullscreen) {
-                          (container as any).msRequestFullscreen();
-                        }
-                      }
-                    }}
-                  />
+
                   <div className="absolute bottom-0 left-0 right-0 text-white text-xs px-3 py-2 flex flex-col gap-0.5">
                     <div className="font-medium truncate">
                       {uid || "Unknown UID"}
                     </div>
+                    <Maximize
+                      className="absolute bottom-2 right-2 text-white w-6 h-6 cursor-pointer"
+                      onClick={() => {
+                        const container = document.getElementById(
+                          `streamContainer-${uid}`
+                        );
+                        if (container) {
+                          if (container.requestFullscreen) {
+                            container.requestFullscreen();
+                          } else if (
+                            (container as any).webkitRequestFullscreen
+                          ) {
+                            (container as any).webkitRequestFullscreen();
+                          } else if ((container as any).msRequestFullscreen) {
+                            (container as any).msRequestFullscreen();
+                          }
+                        }
+                      }}
+                    />
                   </div>
                 </div>
               </div>

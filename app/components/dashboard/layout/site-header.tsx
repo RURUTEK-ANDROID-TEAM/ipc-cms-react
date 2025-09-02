@@ -1,7 +1,5 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { useOutletContext } from "react-router";
-import type { ReactNode } from "react";
 
 type Props = {
   title?: string;

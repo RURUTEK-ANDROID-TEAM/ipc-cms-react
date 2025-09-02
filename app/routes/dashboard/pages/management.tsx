@@ -1,4 +1,4 @@
-import { DataTable } from "@/components/dashboard/data-table";
+import { DataTable } from "@/components/management/data-table/data-table";
 import {
   useEffect,
   useRef,
