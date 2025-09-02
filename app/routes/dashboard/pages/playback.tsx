@@ -38,14 +38,18 @@ const Playback = () => {
   const [date, setDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
+    outlet?.setHeader?.({ title: "Playback", actions: null });
     return () => {
-      outlet?.setHeader?.({ title: "Playback", actions: null });
+      outlet?.setHeader?.({ title: undefined, actions: null });
     };
   }, []);
 
   return (
     <div className="ml-4 mr-4">
-      <div className="bg-[#333] rounded-lg aspect-video"></div>
+      <AspectRatio ratio={16 / 9} className="rounded-lg">
+        <video ref={videoRef} className="w-full h-full rounded-2xl" controls />
+      </AspectRatio>
+
       <div className="flex gap-4 mt-4 mb-4">
         <div className="flex flex-col gap-3">
           <Label htmlFor="date-picker" className="px-1">

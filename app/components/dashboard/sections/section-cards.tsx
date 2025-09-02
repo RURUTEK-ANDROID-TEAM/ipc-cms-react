@@ -1,42 +1,46 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Video, VideoOffIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 interface SectionCardsProps {
   refreshKey?: number;
 }
 
+interface CameraData {
+  totalCameraCount: number | null;
+  onlineCamerasCount: number | null;
+  offlineCamerasCount: number | null;
+}
+
 export function SectionCards({ refreshKey }: SectionCardsProps) {
-  const [totalCameraCount, setTotalCameraCount] = useState<number | null>(null);
-  const [onlineCamerasCount, setOnlineCamerasCount] = useState<number | null>(
-    null
-  );
-  const [offlineCamerasCount, setOfflineCamerasCount] = useState<number | null>(
-    null
-  );
+  const [cameraData, setCameraData] = useState<CameraData>({
+    totalCameraCount: null,
+    onlineCamerasCount: null,
+    offlineCamerasCount: null,
+  });
+
+  const fetchCameras = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch("http://172.16.0.157:5000/api/cameras", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch cameras");
+
+      const data = await res.json();
+      setCameraData((prev) => ({ ...prev, totalCameraCount: data.length }));
+    } catch (error) {
+      console.error("Failed to fetch cameras:", error);
+      setCameraData((prev) => ({ ...prev, totalCameraCount: 0 }));
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchCameras = async () => {
-      try {
-        const token = localStorage.getItem("accessToken");
-        const res = await fetch("http://172.16.0.157:5000/api/cameras", {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!res.ok) throw new Error("Failed to fetch cameras");
-
-        const data = await res.json();
-        setTotalCameraCount(data.length);
-      } catch (error) {
-        console.error(error);
-        setTotalCameraCount(0);
-      }
-    };
-
     fetchCameras();
-  }, [refreshKey]);
+  }, [refreshKey, fetchCameras]);
 
   useEffect(() => {
     const ws = new WebSocket("ws://172.16.0.157:5001/camdata");
@@ -44,81 +48,86 @@ export function SectionCards({ refreshKey }: SectionCardsProps) {
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === "camera_status") {
-        setOnlineCamerasCount(msg.total);
-
-        setOfflineCamerasCount((prev) => {
-          if (totalCameraCount !== null && totalCameraCount > 0) {
-            return totalCameraCount - msg.total;
-          }
-          if (totalCameraCount === 0) return 0;
-          return prev;
+        setCameraData((prev) => {
+          const onlineCount = msg.total;
+          const offlineCount =
+            prev.totalCameraCount !== null
+              ? Math.max(0, prev.totalCameraCount - onlineCount)
+              : null;
+          return {
+            ...prev,
+            onlineCamerasCount: onlineCount,
+            offlineCamerasCount: offlineCount,
+          };
         });
       }
     };
 
+    ws.onerror = (error) => console.error("WebSocket error:", error);
+    ws.onclose = () => console.log("WebSocket connection closed");
+
     return () => ws.close();
-  }, [totalCameraCount]);
+  }, []);
 
-  // after your useState declarations
   useEffect(() => {
-    if (totalCameraCount === null || onlineCamerasCount === null) return;
-
-    if (totalCameraCount === 0) {
-      setOnlineCamerasCount(0);
-      setOfflineCamerasCount(0);
+    if (
+      cameraData.totalCameraCount === null ||
+      cameraData.onlineCamerasCount === null
+    )
       return;
-    }
 
-    setOfflineCamerasCount(totalCameraCount - onlineCamerasCount);
-  }, [totalCameraCount, onlineCamerasCount]);
+    if (cameraData.totalCameraCount === 0) {
+      setCameraData((prev) => ({
+        ...prev,
+        onlineCamerasCount: 0,
+        offlineCamerasCount: 0,
+      }));
+    }
+  }, [cameraData.totalCameraCount, cameraData.onlineCamerasCount]);
+
+  const renderCard = (
+    title: string,
+    count: number | null,
+    Icon: React.ComponentType<{ className: string }>,
+    iconColor: string
+  ) => (
+    <Card className="@container/card">
+      <CardHeader>
+        <div className="flex items-center justify-between space-y-0">
+          <CardTitle>{title}</CardTitle>
+          <Icon className={`h-6 w-6 ${iconColor}`} />
+        </div>
+        <CardTitle className="mt-2 text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+          {count !== null ? (
+            <span>{count}</span>
+          ) : (
+            <Skeleton className="h-9 w-9" />
+          )}
+        </CardTitle>
+      </CardHeader>
+    </Card>
+  );
 
   return (
-    <div className="*:data-[slot=card]:from-primary/0 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-3">
-      <Card className="@container/card">
-        <CardHeader>
-          <div className="flex items-center justify-between space-y-0">
-            <CardTitle>Total Cameras</CardTitle>
-            <Video className="h-6 w-6 text-blue-500" />
-          </div>
-          <CardTitle className="mt-2 text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {totalCameraCount !== null ? (
-              <span>{totalCameraCount}</span>
-            ) : (
-              <Skeleton className="h-9 w-9" />
-            )}
-          </CardTitle>
-        </CardHeader>
-      </Card>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between space-y-0">
-            <CardTitle>Camera's Online</CardTitle>
-            <Video className="h-6 w-6 text-green-500" />
-          </div>
-          <CardTitle className="mt-2 text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {onlineCamerasCount !== null ? (
-              <span>{onlineCamerasCount}</span>
-            ) : (
-              <Skeleton className="h-9 w-9" />
-            )}
-          </CardTitle>
-        </CardHeader>
-      </Card>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between space-y-0">
-            <CardTitle>Camera's Offline</CardTitle>
-            <VideoOffIcon className="h-6 w-6 text-red-500" />
-          </div>
-          <CardTitle className="mt-2 text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {offlineCamerasCount !== null ? (
-              <span>{offlineCamerasCount}</span>
-            ) : (
-              <Skeleton className="h-9 w-9" />
-            )}
-          </CardTitle>
-        </CardHeader>
-      </Card>
+    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-3 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/0 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs dark:*:data-[slot=card]:bg-card">
+      {renderCard(
+        "Total Cameras",
+        cameraData.totalCameraCount,
+        Video,
+        "text-blue-500"
+      )}
+      {renderCard(
+        "Cameras Connected",
+        cameraData.onlineCamerasCount,
+        Video,
+        "text-green-500"
+      )}
+      {renderCard(
+        "Cameras Disconnected",
+        cameraData.offlineCamerasCount,
+        VideoOffIcon,
+        "text-red-500"
+      )}
     </div>
   );
 }

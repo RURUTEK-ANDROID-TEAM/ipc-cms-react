@@ -11,6 +11,10 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
   Table,
   TableBody,
   TableCell,
@@ -18,11 +22,15 @@ import {
   TableHeader,
   TableRow,
 } from "../../ui/table";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import { DraggableRow } from "./draggable-row";
+
+interface TableWrapperProps {
+  table: ReturnType<typeof useReactTable<any>>;
+  columns: ColumnDef<any>[];
+  ids: UniqueIdentifier[];
+  sensors: any;
+  onDragEnd: (event: DragEndEvent) => void;
+}
 
 export const TableWrapper = ({
   table,
@@ -30,14 +38,8 @@ export const TableWrapper = ({
   ids,
   sensors,
   onDragEnd,
-}: {
-  table: ReturnType<typeof useReactTable<any>>;
-  columns: ColumnDef<any>[];
-  ids: UniqueIdentifier[];
-  sensors: any;
-  onDragEnd: (event: DragEndEvent) => void;
-}) => {
-  const rows = table.getRowModel().rows;
+}: TableWrapperProps) => {
+  const { rows } = table.getRowModel();
 
   return (
     <div className="overflow-hidden rounded-lg border">
@@ -65,7 +67,7 @@ export const TableWrapper = ({
             ))}
           </TableHeader>
           <TableBody>
-            {rows?.length ? (
+            {rows.length ? (
               <SortableContext
                 items={ids}
                 strategy={verticalListSortingStrategy}

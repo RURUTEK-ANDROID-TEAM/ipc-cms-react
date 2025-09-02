@@ -1,9 +1,13 @@
 import { Badge } from "../../ui/badge";
 
-export const StatusBadge = ({ status }: { status?: boolean }) => {
-  return status ? (
-    <Badge variant="default">Online</Badge>
-  ) : (
-    <Badge variant="destructive">Offline</Badge>
+type StatusBadgeProps = {
+  status?: boolean;
+};
+
+export const StatusBadge = ({ status }: StatusBadgeProps) => {
+  return (
+    <Badge variant={status ? "default" : "destructive"}>
+      {status ? "Online" : "Offline"}
+    </Badge>
   );
 };
