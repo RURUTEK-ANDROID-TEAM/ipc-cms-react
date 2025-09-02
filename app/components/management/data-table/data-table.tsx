@@ -78,6 +78,7 @@ export const DataTable = ({
   refreshUsers,
   refreshDevices,
   refreshGroups,
+  onUpdate,
 }: {
   users?: UserType[];
   devices?: DeviceType[];
@@ -86,6 +87,7 @@ export const DataTable = ({
   refreshUsers?: () => Promise<void>;
   refreshDevices?: () => Promise<void>;
   refreshGroups?: () => Promise<void>;
+  onUpdate?: () => void;
 }) => {
   // State management
   const [open, setOpen] = useState(false);
@@ -384,6 +386,7 @@ export const DataTable = ({
             prev.filter((device) => device.id !== deleteDialog.item.id)
           );
           if (refreshDevices) await refreshDevices();
+          onUpdate?.();
           toast.success("Device deleted successfully");
           break;
         case "group":
@@ -758,6 +761,7 @@ export const DataTable = ({
 
         if (refreshDevices) {
           await refreshDevices();
+          onUpdate?.();
         }
 
         toast.success("Camera assigned successfully");

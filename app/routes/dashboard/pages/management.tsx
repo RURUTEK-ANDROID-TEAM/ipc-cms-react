@@ -15,10 +15,12 @@ type OutletHeaderSetter = {
 
 interface ManagementProps {
   hideUsersTable?: boolean;
+  onUpdate?: () => void;
 }
 
 const Management: FC<ManagementProps> = ({
   hideUsersTable = false,
+  onUpdate,
 }): JSX.Element => {
   const outlet = useOutletContext<OutletHeaderSetter>();
   const updateOnlineUIDs = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -162,6 +164,7 @@ const Management: FC<ManagementProps> = ({
       refreshDevices={fetchDevices}
       refreshGroups={fetchGroups}
       hideUsersTable={hideUsersTable}
+      onUpdate={onUpdate}
     />
   );
 };

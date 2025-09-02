@@ -45,13 +45,7 @@ const Playback = () => {
 
   return (
     <div className="ml-4 mr-4">
-      <AspectRatio ratio={16 / 9} className="bg-muted rounded-lg">
-        <img
-          src="https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=100&dpr=2&q=80"
-          alt="Photo by Drew Beamer"
-          className="h-full w-full rounded-lg object-cover dark:brightness-[0.2] dark:grayscale"
-        />
-      </AspectRatio>
+      <div className="bg-[#333] rounded-lg aspect-video"></div>
       <div className="flex gap-4 mt-4 mb-4">
         <div className="flex flex-col gap-3">
           <Label htmlFor="date-picker" className="px-1">

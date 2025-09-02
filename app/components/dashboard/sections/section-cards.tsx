@@ -3,7 +3,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Video, VideoOffIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export function SectionCards() {
+interface SectionCardsProps {
+  refreshKey?: number;
+}
+
+export function SectionCards({ refreshKey }: SectionCardsProps) {
   const [totalCameraCount, setTotalCameraCount] = useState<number | null>(null);
   const [onlineCamerasCount, setOnlineCamerasCount] = useState<number | null>(
     null
@@ -16,22 +20,15 @@ export function SectionCards() {
     const fetchCameras = async () => {
       try {
         const token = localStorage.getItem("accessToken");
-
         const res = await fetch("http://172.16.0.157:5000/api/cameras", {
           method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch cameras");
-        }
+        if (!res.ok) throw new Error("Failed to fetch cameras");
 
         const data = await res.json();
-
         setTotalCameraCount(data.length);
-        console.log(data);
       } catch (error) {
         console.error(error);
         setTotalCameraCount(0);
@@ -39,26 +36,41 @@ export function SectionCards() {
     };
 
     fetchCameras();
+  }, [refreshKey]);
 
+  useEffect(() => {
     const ws = new WebSocket("ws://172.16.0.157:5001/camdata");
 
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === "camera_status") {
-        setOnlineCamerasCount(msg.total); // total online
-        if (totalCameraCount !== null && totalCameraCount != 0) {
-          setOfflineCamerasCount(totalCameraCount - msg.total); // offline = total - online
-        }
+        setOnlineCamerasCount(msg.total);
 
-        if (totalCameraCount === 0) {
-          setOnlineCamerasCount(0);
-          setOfflineCamerasCount(0);
-        }
+        setOfflineCamerasCount((prev) => {
+          if (totalCameraCount !== null && totalCameraCount > 0) {
+            return totalCameraCount - msg.total;
+          }
+          if (totalCameraCount === 0) return 0;
+          return prev;
+        });
       }
     };
 
     return () => ws.close();
   }, [totalCameraCount]);
+
+  // after your useState declarations
+  useEffect(() => {
+    if (totalCameraCount === null || onlineCamerasCount === null) return;
+
+    if (totalCameraCount === 0) {
+      setOnlineCamerasCount(0);
+      setOfflineCamerasCount(0);
+      return;
+    }
+
+    setOfflineCamerasCount(totalCameraCount - onlineCamerasCount);
+  }, [totalCameraCount, onlineCamerasCount]);
 
   return (
     <div className="*:data-[slot=card]:from-primary/0 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-3">
