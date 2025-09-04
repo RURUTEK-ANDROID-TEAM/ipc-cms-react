@@ -1,37 +1,171 @@
-.vis-item.recorded-segment {
-  background-color: #1e90ff; /* Dodger Blue */
-  border: none;
-  border-radius: 4px; /* keep slight rounding for buttons, can be 0 if you want */
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.vis-item.recorded-segment:hover {
-  background-color: #3399ff; /* Lighter Blue */
-  box-shadow: 0 0 8px #3399ff66; /* softer glow */
-  transform: scale(1.03);
-}
-
-.vis-item.recorded-segment.vis-selected {
-  background-color: #0056b3; /* Darker Blue */
-  border: 2px solid #3399ff;
-  transform: scale(1.06);
-}
-
+/* Timeline container styling */
 .vis-timeline {
-  border: none;       /* no card border */
-  border-radius: 0;   /* no rounded card look */
-  box-shadow: none;   /* ensure no shadow effect */
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
-.vis-loading-screen {
-  background-color: rgba(18, 18, 18, 0.85);
-  color: #eee;
+/* Timeline background */
+.vis-timeline .vis-panel.vis-background {
+  background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+}
+
+/* Recorded segments styling */
+.vis-timeline .vis-item.recorded-segment {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border: 2px solid #1e40af;
+  border-radius: 6px;
+  color: white;
+  font-weight: 500;
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+  transition: all 0.2s ease-in-out;
+}
+
+.vis-timeline .vis-item.recorded-segment:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+  cursor: pointer;
+}
+
+.vis-timeline .vis-item.recorded-segment.vis-selected {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-color: #b91c1c;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+/* Timeline axis */
+.vis-timeline .vis-labelset {
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+}
+
+.vis-timeline .vis-time-axis {
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.vis-timeline .vis-text {
+  color: #475569;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.vis-timeline .vis-minor .vis-text {
+  color: #94a3b8;
+}
+
+/* Custom time marker (playback cursor) */
+.vis-timeline .vis-custom-time {
+  background-color: #ef4444;
+  width: 3px;
+  cursor: default;
+  z-index: 10;
+}
+
+.vis-timeline .vis-custom-time::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -6px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #ef4444;
+}
+
+/* Grid lines */
+.vis-timeline .vis-grid.vis-minor {
+  border-left: 1px solid #f1f5f9;
+}
+
+.vis-timeline .vis-grid.vis-major {
+  border-left: 1px solid #e2e8f0;
+}
+
+/* Current time line */
+.vis-timeline .vis-current-time {
+  background-color: #10b981;
+  width: 2px;
+}
+
+/* Tooltip styling */
+.vis-tooltip {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 200px;
+  word-wrap: break-word;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Scrollbar styling */
+.vis-timeline::-webkit-scrollbar {
+  height: 8px;
+}
+
+.vis-timeline::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.vis-timeline::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.vis-timeline::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Loading state */
+.timeline-loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  border-radius: 0; /* flat, no card rounding */
+  height: 100px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Empty state */
+.timeline-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 14px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeline-empty-icon {
+  width: 24px;
+  height: 24px;
+  opacity: 0.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .vis-timeline .vis-item.recorded-segment {
+    font-size: 10px;
+    min-height: 20px;
+  }
+  
+  .vis-timeline .vis-text {
+    font-size: 10px;
+  }
 }

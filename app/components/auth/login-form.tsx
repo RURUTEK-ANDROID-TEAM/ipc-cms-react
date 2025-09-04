@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { toast } from "sonner";
 
 export function LoginForm({

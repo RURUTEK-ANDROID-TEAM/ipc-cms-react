@@ -4,6 +4,7 @@ import {
   IconCalendarClock,
   IconCamera,
   IconCar,
+  IconCardsFilled,
   IconDashboard,
   IconFaceId,
   IconFileAi,
@@ -28,6 +29,7 @@ import { NavMain } from "../navigation/nav-main";
 import { NavSecondary } from "../navigation/nav-secondary";
 import { NavUser } from "../navigation/nav-user";
 import { NavAIFeatures } from "../navigation/nav-ai-features";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const data = {
   user: {
@@ -45,6 +47,11 @@ const data = {
       title: "Live View",
       url: "/dashboard/live-view",
       icon: IconVideo,
+    },
+    {
+      title: "Groups",
+      url: "/dashboard/groups",
+      icon: IconCardsFilled,
     },
     {
       title: "Playback",
@@ -158,15 +165,20 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
+    <Sidebar
+      collapsible="offcanvas"
+      {...props}
+      className="h-screen flex flex-col"
+    >
+      {/* Fixed header */}
+      <SidebarHeader className="flex-shrink-0">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
               className="data-[slot=sidebar-menu-button]:!p-2"
             >
-              <a href="#">
+              <a href="/dashboard">
                 <img
                   src="/rurutek_logo.png"
                   alt="Rurutek Logo"
@@ -180,12 +192,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavAIFeatures items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
-      </SidebarContent>
-      <SidebarFooter>
+
+      {/* Scrollable middle content - this is the key fix */}
+      <div className="flex-1 min-h-0">
+        <ScrollArea className="h-full">
+          <SidebarContent className="px-0">
+            <NavMain items={data.navMain} />
+            <NavAIFeatures items={data.documents} />
+            <NavSecondary items={data.navSecondary} className="mt-auto" />
+          </SidebarContent>
+        </ScrollArea>
+      </div>
+
+      {/* Fixed footer */}
+      <SidebarFooter className="flex-shrink-0">
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>

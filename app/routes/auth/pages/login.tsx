@@ -1,5 +1,4 @@
 import { LoginForm } from "@/components/auth/login-form";
-import { GalleryVerticalEnd } from "lucide-react";
 
 const Login = () => {
   return (
