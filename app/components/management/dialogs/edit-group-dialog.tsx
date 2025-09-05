@@ -113,7 +113,11 @@ export const EditGroupDialog = ({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button
+              className="dark:text-white"
+              type="submit"
+              disabled={loading}
+            >
               {loading ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>

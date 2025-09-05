@@ -47,11 +47,11 @@ export function NavMain({ items }: NavMainProps) {
                   >
                     {item.icon && (
                       <item.icon
-                        className={`size-4 ${isActive ? "text-blue-500" : "text-gray-500"}`}
+                        className={`size-4 ${isActive ? "text-blue-500" : "text-gray-500"} dark:${isActive ? "text-blue-400" : "text-white"}`}
                       />
                     )}
                     <span
-                      className={isActive ? "text-blue-500" : "text-gray-700"}
+                      className={`${isActive ? "text-blue-500" : "text-gray-700"} dark:${isActive ? "text-blue-400" : "text-white"}`}
                     >
                       {item.title}
                     </span>

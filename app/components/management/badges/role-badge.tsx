@@ -1,21 +1,31 @@
 import { IconUser, IconUserPentagon, IconUserStar } from "@tabler/icons-react";
-import { Badge } from "../../ui/badge";
+import { Badge } from "@/components/ui/badge"; // Using shadcn/ui Badge
+import type { ComponentType } from "react";
 
+// Define the shape of a role configuration
+interface RoleConfig {
+  icon: ComponentType<{ className?: string }>;
+  color: string;
+}
+
+// Define the props for the RoleBadge component
 interface RoleBadgeProps {
   role: string;
 }
 
-interface RoleConfig {
-  icon: React.ComponentType<{ className: string }>;
-  color: string;
-}
-
+// Map roles to specific icons and Tailwind CSS classes for color
 const roleConfig: Record<string, RoleConfig> = {
-  admin: { icon: IconUser, color: "text-red-500 dark:text-red-400" },
-  operator: { icon: IconUserStar, color: "text-blue-500 dark:text-blue-400" },
-  default: {
+  admin: {
     icon: IconUserPentagon,
-    color: "text-green-500 dark:text-gray-400",
+    color: "bg-red-500 hover:bg-red-600",
+  },
+  operator: {
+    icon: IconUser,
+    color: "bg-blue-500 hover:bg-blue-600",
+  },
+  default: {
+    icon: IconUserStar,
+    color: "bg-gray-500 hover:bg-gray-600",
   },
 };
 
@@ -25,8 +35,14 @@ export const RoleBadge = ({ role }: RoleBadgeProps) => {
   const { icon: Icon, color } = roleConfig[roleRaw] || roleConfig.default;
 
   return (
-    <Badge variant="outline" className="flex items-center gap-1 px-2 py-0.5">
-      <Icon className={`size-4 mr-1 ${color}`} />
+    <Badge
+      variant="secondary"
+      className={`
+        inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium 
+        text-white ${color} transition-colors
+      `}
+    >
+      <Icon className="size-3.5" />
       {roleName}
     </Badge>
   );

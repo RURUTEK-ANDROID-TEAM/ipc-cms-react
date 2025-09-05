@@ -10,6 +10,7 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import type { ReactNode } from "react";
+import { ThemeProvider } from "./components/theme/theme-provider";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -32,9 +33,28 @@ export function Layout({ children }: { children: ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+        (function() {
+          try {
+            var theme = localStorage.getItem('vite-ui-theme');
+            var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (theme === 'dark' || (!theme && systemDark)) {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.add('light');
+            }
+          } catch (_) {}
+        })();
+      `,
+          }}
+        />
       </head>
       <body cz-shortcut-listen="true">
-        {children}
+        <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+          {children}
+        </ThemeProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

@@ -10,7 +10,11 @@ import {
 import { useOutletContext } from "react-router";
 
 type OutletHeaderSetter = {
-  setHeader?: (ctx: { title?: string; actions?: ReactNode | null }) => void;
+  setHeader?: (ctx: {
+    title?: string;
+    actions?: ReactNode | null;
+    breadcrumb?: { title: string; path: string }[];
+  }) => void;
 };
 
 interface ManagementProps {
@@ -37,9 +41,20 @@ const Management: FC<ManagementProps> = ({
   useEffect(() => {
     return () => {
       if (hideUsersTable) {
-        outlet?.setHeader?.({ title: "Dashboard", actions: null });
+        outlet?.setHeader?.({
+          title: "Dashboard",
+          actions: null,
+          breadcrumb: [],
+        });
       } else {
-        outlet?.setHeader?.({ title: "Management", actions: null });
+        outlet?.setHeader?.({
+          title: "Management",
+          actions: null,
+          breadcrumb: [
+            { title: "Dashboard", path: "/dashboard" },
+            { title: "Management", path: "dashboard/management" },
+          ],
+        });
       }
     };
   }, [hideUsersTable]);

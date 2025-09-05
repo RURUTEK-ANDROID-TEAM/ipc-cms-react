@@ -23,7 +23,7 @@ export const CameraGrid: FC<CameraGridProps> = ({
   viewLayout,
 }) => {
   return (
-    <Card className="shadow-none border-0">
+    <Card className="shadow-none border-0 dark:bg-transparent">
       <CardContent className="space-y-0.5">
         <div
           className={`grid gap-4 ${layoutToCols[viewLayout] || "grid-cols-2"}`}
@@ -34,7 +34,7 @@ export const CameraGrid: FC<CameraGridProps> = ({
             return (
               <div
                 key={uid}
-                className="group relative aspect-video bg-black flex items-center justify-center rounded-md overflow-hidden"
+                className="group relative aspect-video bg-black dark:bg-[#333] flex items-center justify-center rounded-md overflow-hidden"
               >
                 <div id={`streamContainer-${uid}`} className="w-full h-full" />
 

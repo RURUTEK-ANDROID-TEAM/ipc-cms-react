@@ -214,8 +214,8 @@ export function PlaybackTimeline({
   }, [videoRef, activeRecording]);
 
   return (
-    <div className="w-full min-h-[130px] rounded-lg shadow-md p-2 bg-white">
-      <div className="mb-2 text-sm text-gray-600">
+    <div className="w-full min-h-[130px] rounded-lg shadow-md p-2 bg-white text-gray-700 dark:bg-gray-900 dark:text-gray-200">
+      <div className="mb-2 text-sm text-gray-600 dark:text-gray-400">
         {recordings.length > 0
           ? `${recordings.length} recording(s) found`
           : "No recordings available"}

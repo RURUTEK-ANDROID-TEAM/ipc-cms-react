@@ -24,7 +24,7 @@ export function LayoutDropdown({
           className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
         >
           <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-            <GalleryHorizontalEnd className="size-4" />
+            <GalleryHorizontalEnd className="size-4 dark:text-white" />
           </div>
           <div className="flex gap-1 leading-none">
             <span className="font-medium">Layout</span>

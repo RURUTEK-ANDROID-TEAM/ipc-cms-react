@@ -2,8 +2,10 @@ import { CameraGrid } from "@/components/live-view/camera-grid";
 import { LayoutDropdown } from "@/components/live-view/layout-dropdown";
 import type { DeviceType } from "@/components/management/schemas/schemas";
 import { Button } from "@/components/ui/button";
+import { HoverCard, HoverCardContent } from "@/components/ui/hover-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWebRTC } from "@/hooks/use-webrtc";
+import { HoverCardTrigger } from "@radix-ui/react-hover-card";
 import { RefreshCw } from "lucide-react";
 import {
   useCallback,
@@ -17,7 +19,11 @@ import { useOutletContext } from "react-router";
 const API_URL = "http://172.16.0.157:5000/api";
 
 type OutletHeaderSetter = {
-  setHeader?: (ctx: { title?: string; actions?: ReactNode | null }) => void;
+  setHeader?: (ctx: {
+    title?: string;
+    actions?: ReactNode | null;
+    breadcrumb?: { title: string; path: string }[];
+  }) => void;
 };
 
 type Group = {
@@ -162,6 +168,10 @@ const Groups = () => {
           />
         </>
       ),
+      breadcrumb: [
+        { title: "Dashboard", path: "/dashboard" },
+        { title: "Groups", path: "dashboard/groups" },
+      ],
     });
     return () => outlet?.setHeader?.({ title: undefined, actions: null });
   }, [viewLayout, loading, fetchGroups, signalingState, reconnect]);
@@ -179,15 +189,15 @@ const Groups = () => {
     console.log("🎥 Recording state:", recordingState);
   }, [activeTab, groups, devicesByGroup, recordingState]);
 
-  // // Loading state
-  // if (loading) {
-  //   return (
-  //     <div className="flex items-center justify-center h-screen">
-  //       <div className="w-16 h-16 border-t-4 border-blue-600 rounded-full animate-spin" />
-  //       <div className="ml-4 text-lg">Loading groups...</div>
-  //     </div>
-  //   );
-  // }
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="w-16 h-16 border-t-4 border-blue-600 rounded-full animate-spin" />
+        <div className="ml-4 text-lg">Loading groups...</div>
+      </div>
+    );
+  }
 
   // Error state
   if (error) {

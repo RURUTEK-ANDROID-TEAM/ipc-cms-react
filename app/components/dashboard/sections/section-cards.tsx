@@ -94,14 +94,16 @@ export function SectionCards({ refreshKey }: SectionCardsProps) {
     <Card className="@container/card">
       <CardHeader>
         <div className="flex items-center justify-between space-y-0">
-          <CardTitle>{title}</CardTitle>
+          <CardTitle className="text-lg font-medium text-gray-700 dark:text-gray-200">
+            {title}
+          </CardTitle>
           <Icon className={`h-6 w-6 ${iconColor}`} />
         </div>
-        <CardTitle className="mt-2 text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+        <CardTitle className="mt-2 text-2xl font-bold tabular-nums @[250px]/card:text-3xl">
           {count !== null ? (
             <span>{count}</span>
           ) : (
-            <Skeleton className="h-9 w-9" />
+            <Skeleton className="h-8 w-12 rounded-md bg-gray-200 dark:bg-gray-600" />
           )}
         </CardTitle>
       </CardHeader>

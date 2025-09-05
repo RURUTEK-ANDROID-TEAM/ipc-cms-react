@@ -2,7 +2,10 @@ import {
   IconCreditCard,
   IconDotsVertical,
   IconLogout,
+  IconMoon,
   IconNotification,
+  IconSun,
+  IconThermometer,
   IconUserCircle,
 } from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,6 +24,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { ModeToggle } from "@/components/theme/mode-toggle";
 
 interface NavUserProps {
   user: {
@@ -55,12 +59,6 @@ const UserInfo = ({ name, email, avatar, className }: UserInfoProps) => (
 export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar();
 
-  const menuItems = [
-    { icon: IconUserCircle, label: "Account" },
-    { icon: IconCreditCard, label: "Billing" },
-    { icon: IconNotification, label: "Notifications" },
-  ];
-
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -85,6 +83,7 @@ export function NavUser({ user }: NavUserProps) {
             align="end"
             sideOffset={4}
           >
+            {/* User header */}
             <DropdownMenuLabel className="p-0 font-normal">
               <UserInfo
                 name={user.name}
@@ -93,16 +92,30 @@ export function NavUser({ user }: NavUserProps) {
                 className="px-1 py-1.5"
               />
             </DropdownMenuLabel>
+
             <DropdownMenuSeparator />
+
+            {/* Main group */}
             <DropdownMenuGroup>
-              {menuItems.map(({ icon: Icon, label }) => (
-                <DropdownMenuItem key={label}>
-                  <Icon />
-                  {label}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuItem>
+                <IconUserCircle />
+                Account
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <IconCreditCard />
+                Billing
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <IconNotification />
+                Notifications
+              </DropdownMenuItem>
+
+              <ModeToggle />
             </DropdownMenuGroup>
+
             <DropdownMenuSeparator />
+
+            {/* Log out */}
             <DropdownMenuItem>
               <IconLogout />
               Log out

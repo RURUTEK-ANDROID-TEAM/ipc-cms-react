@@ -103,7 +103,11 @@ export const AddUserForm = ({
             Cancel
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={loading || !role}>
+        <Button
+          type="submit"
+          disabled={loading || !role}
+          className="dark:text-white"
+        >
           <UserPlus />
           {loading ? "Adding..." : "Add User"}
         </Button>

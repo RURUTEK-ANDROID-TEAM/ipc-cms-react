@@ -11,6 +11,7 @@ import {
 } from "../../ui/dialog";
 import { Checkbox } from "../../ui/checkbox";
 import { Button } from "../../ui/button";
+import { FormActions } from "@/components/ui/form-action-props";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -166,6 +167,7 @@ export const AddDevicesDialog = ({
         className="flex items-center gap-3 border-b py-3"
       >
         <Checkbox
+          className="h-5 w-5 dark:text-white"
           checked={selectedDevices.has(cam.camera_id)}
           onCheckedChange={() => toggleDevice(cam.camera_id)}
           disabled={loading}
@@ -203,16 +205,11 @@ export const AddDevicesDialog = ({
           <span>{cameras.length} total devices</span>
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? "Saving..." : "Save Changes"}
-          </Button>
+          <FormActions
+            loading={loading}
+            onCancel={() => onOpenChange(false)}
+            onSave={handleSave}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -31,6 +31,7 @@ import { NavUser } from "../navigation/nav-user";
 import { NavAIFeatures } from "../navigation/nav-ai-features";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ComponentProps } from "react";
+import { ModeToggle } from "../../theme/mode-toggle";
 
 const data = {
   user: {

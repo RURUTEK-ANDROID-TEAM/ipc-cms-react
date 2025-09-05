@@ -79,7 +79,11 @@ export const AddDeviceForm = ({
             Cancel
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={loading || !canSubmit}>
+        <Button
+          type="submit"
+          className="dark:text-white"
+          disabled={loading || !canSubmit}
+        >
           <Video />
           {loading ? "Adding..." : "Add Device"}
         </Button>

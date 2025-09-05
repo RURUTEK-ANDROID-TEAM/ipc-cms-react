@@ -5,9 +5,15 @@ import type { CSSProperties, ReactNode } from "react";
 import { Outlet } from "react-router";
 import { useState } from "react";
 
+type BreadcrumbItem = {
+  title: string;
+  path: string;
+};
+
 type HeaderContext = {
   title?: string;
   actions?: ReactNode | null;
+  breadcrumb?: BreadcrumbItem[];
 };
 
 const DashboardLayout = () => {
@@ -15,6 +21,7 @@ const DashboardLayout = () => {
   const [header, setHeader] = useState<HeaderContext>({
     title: "",
     actions: null,
+    breadcrumb: [],
   });
 
   // Expose a setter that merges partial updates (convenience)
@@ -30,10 +37,14 @@ const DashboardLayout = () => {
         } as CSSProperties
       }
     >
-      <AppSidebar variant="inset" />
+      <AppSidebar variant="inset" collapsible="icon" />
       <SidebarInset>
         {/* SiteHeader reads the parent-managed header state */}
-        <SiteHeader title={header.title} actions={header.actions} />
+        <SiteHeader
+          title={header.title}
+          actions={header.actions}
+          breadcrumb={header.breadcrumb}
+        />
 
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">

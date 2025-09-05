@@ -29,7 +29,11 @@ import { useOutletContext, useParams, useNavigate } from "react-router";
 import Hls from "hls.js";
 
 type OutletHeaderSetter = {
-  setHeader?: (ctx: { title?: string; actions?: ReactNode | null }) => void;
+  setHeader?: (ctx: {
+    title?: string;
+    actions?: ReactNode | null;
+    breadcrumb?: { title: string; path: string }[];
+  }) => void;
 };
 type Recording = {
   id: number;
@@ -66,8 +70,14 @@ const Playback = () => {
 
   // --- HEADER ---
   useEffect(() => {
-    outlet?.setHeader?.({ title: "Playback", actions: null });
-    return () => outlet?.setHeader?.({ title: undefined, actions: null });
+    outlet?.setHeader?.({
+      title: "Playback",
+      actions: null,
+      breadcrumb: [
+        { title: "Dashboard", path: "/dashboard" },
+        { title: "Playback", path: "dashboard/playback" },
+      ],
+    });
   }, []);
 
   // --- FETCH DEVICES ---
@@ -452,7 +462,7 @@ const Playback = () => {
 
       {/* Debug + Errors */}
       {process.env.NODE_ENV === "development" && (
-        <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+        <div className="text-xs text-gray-500 p-2 bg-gray-50 dark:bg-transparent rounded">
           <div>Selected UID: {selectedUid}</div>
           <div>Recordings count: {recordings.length}</div>
           <div>Selected URL: {selectedUrl ? "Set" : "None"}</div>
@@ -460,7 +470,7 @@ const Playback = () => {
         </div>
       )}
       {error && (
-        <div className="text-red-600 text-sm mb-4 p-2 bg-red-50 rounded">
+        <div className="text-red-600 text-sm mb-4 p-2 rounded">
           Error: {error}
         </div>
       )}

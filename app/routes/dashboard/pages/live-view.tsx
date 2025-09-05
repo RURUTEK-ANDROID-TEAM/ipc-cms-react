@@ -10,7 +10,11 @@ import { useWebRTC } from "@/hooks/use-webrtc";
 const API_URL = "http://172.16.0.157:5000/api";
 
 type OutletHeaderSetter = {
-  setHeader?: (ctx: { title?: string; actions?: ReactNode | null }) => void;
+  setHeader?: (ctx: {
+    title?: string;
+    actions?: ReactNode | null;
+    breadcrumb?: { title: string; path: string }[];
+  }) => void;
 };
 
 const LiveView = () => {
@@ -127,7 +131,15 @@ const LiveView = () => {
         </>
       ),
     });
-    return () => outlet?.setHeader?.({ title: "Live View", actions: null });
+    return () =>
+      outlet?.setHeader?.({
+        title: "Live View",
+        actions: null,
+        breadcrumb: [
+          { title: "Dashboard", path: "/dashboard" },
+          { title: "Live View", path: "dashboard/live-view" },
+        ],
+      });
   }, [viewLayout, loading, fetchCameras, refreshStreams, cameraUIDs.length]);
 
   // Initialize cameras on mount
