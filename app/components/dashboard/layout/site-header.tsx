@@ -1,9 +1,10 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import type { ReactNode } from "react";
 
 type Props = {
   title?: string;
-  actions?: React.ReactNode;
+  actions?: ReactNode;
 };
 
 export function SiteHeader({ title = "Dashboard", actions = null }: Props) {

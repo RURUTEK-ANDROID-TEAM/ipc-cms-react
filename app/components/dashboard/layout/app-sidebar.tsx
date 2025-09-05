@@ -30,6 +30,7 @@ import { NavSecondary } from "../navigation/nav-secondary";
 import { NavUser } from "../navigation/nav-user";
 import { NavAIFeatures } from "../navigation/nav-ai-features";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { ComponentProps } from "react";
 
 const data = {
   user: {
@@ -163,7 +164,7 @@ const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
       collapsible="offcanvas"

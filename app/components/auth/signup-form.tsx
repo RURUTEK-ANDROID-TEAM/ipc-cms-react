@@ -10,11 +10,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router";
+import type { ComponentProps } from "react";
 
-export function SignUpForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export function SignUpForm({ className, ...props }: ComponentProps<"div">) {
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
