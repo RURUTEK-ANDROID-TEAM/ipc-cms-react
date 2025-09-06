@@ -12,6 +12,7 @@ import {
 import { Checkbox } from "../../ui/checkbox";
 import { Button } from "../../ui/button";
 import { FormActions } from "@/components/ui/form-action-props";
+import axios from "axios";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -43,30 +44,22 @@ export const AddDevicesDialog = ({
       if (!token) throw new Error("No access token found");
 
       const [camerasRes, assignedRes] = await Promise.all([
-        fetch(`${API_URL}/cameras`, {
+        axios.get<DeviceType[]>(`${API_URL}/cameras`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${API_URL}/groups/${group.id}/devices`, {
+        axios.get<DeviceType[]>(`${API_URL}/groups/${group.id}/devices`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
 
-      if (!camerasRes.ok || !assignedRes.ok) {
-        throw new Error("Failed to fetch data");
-      }
+      setCameras(camerasRes.data);
 
-      const [camerasData, assignedData] = await Promise.all([
-        camerasRes.json() as Promise<DeviceType[]>,
-        assignedRes.json() as Promise<DeviceType[]>,
-      ]);
-
-      setCameras(camerasData);
-      const assignedSet = new Set(assignedData.map((cam) => cam.camera_id));
+      const assignedSet = new Set(assignedRes.data.map((cam) => cam.camera_id));
       setSelectedDevices(assignedSet);
       setPrevAssigned(assignedSet);
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to load cameras");
+    } catch (e: any) {
+      console.error("Failed to load cameras:", e);
+      toast.error(e.response?.data?.message || "Failed to load cameras");
     } finally {
       setLoading(false);
     }
@@ -94,51 +87,46 @@ export const AddDevicesDialog = ({
 
       const current = Array.from(selectedDevices);
       const previous = Array.from(prevAssigned);
+
       const toAdd = current.filter((id) => !prevAssigned.has(id));
       const toRemove = previous.filter((id) => !selectedDevices.has(id));
 
-      const requests: Promise<Response>[] = [];
+      const requests: Promise<any>[] = [];
+
       if (toRemove.length > 0) {
         requests.push(
-          fetch(`${API_URL}/groups/${group.id}/devices`, {
-            method: "DELETE",
+          axios.delete(`${API_URL}/groups/${group.id}/devices`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ cameraIds: toRemove }),
+            data: { cameraIds: toRemove }, // ✅ axios delete requires "data"
           })
         );
       }
 
       if (toAdd.length > 0) {
         requests.push(
-          fetch(`${API_URL}/groups/${group.id}/devices`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ cameraIds: toAdd }),
-          })
+          axios.post(
+            `${API_URL}/groups/${group.id}/devices`,
+            { cameraIds: toAdd },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          )
         );
       }
 
-      const responses = await Promise.all(requests);
-      for (const response of responses) {
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to update devices");
-        }
-      }
+      await Promise.all(requests);
 
       toast.success("Devices updated successfully");
       onOpenChange(false);
-    } catch (err) {
-      console.error(err);
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update devices"
-      );
+    } catch (err: any) {
+      console.error("Failed to update devices:", err);
+      toast.error(err.response?.data?.message || "Failed to update devices");
     } finally {
       setLoading(false);
     }

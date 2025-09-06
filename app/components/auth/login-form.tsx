@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { useState, type ComponentProps, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
+
+const API_URL = "http://172.16.0.157:5000/api";
 
 export function LoginForm({ className, ...props }: ComponentProps<"div">) {
   const [loading, setLoading] = useState(false);
@@ -28,18 +31,16 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
     const password = formData.get("password");
 
     try {
-      const res = await fetch("http://172.16.0.157:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+      const res = await axios.post(
+        `${API_URL}/auth/login`,
+        {
+          username,
+          password,
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error("Login Failed");
-        throw new Error(data.message || "Login Failed");
-      }
+      const data = res.data;
 
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
@@ -48,9 +49,17 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
 
       setTimeout(() => {
         navigate("/dashboard");
-      }, 1000);
+      }, 500);
     } catch (error: any) {
-      setError(error.message);
+      if (axios.isAxiosError(error)) {
+        const message =
+          error.response?.data?.message || "Login failed. Please try again.";
+        toast.error(message);
+        setError(message);
+      } else {
+        toast.error("An unexpected error occurred.");
+        setError(error.message);
+      }
     } finally {
       setLoading(false);
     }

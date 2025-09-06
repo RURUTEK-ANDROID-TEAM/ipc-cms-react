@@ -1,5 +1,5 @@
 import { Moon, Sun, Laptop } from "lucide-react";
-import { useTheme } from "./theme-provider";
+import { useTheme } from "../../hooks/use-theme-provider";
 import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
@@ -16,7 +16,6 @@ export function ModeToggle() {
       <DropdownMenuSubTrigger>
         {theme === "light" && <Sun className="mr-2 h-4 w-4" />}
         {theme === "dark" && <Moon className="mr-2 h-4 w-4" />}
-        {theme === "system" && <Laptop className="mr-2 h-4 w-4" />}
         <span>Theme</span>
       </DropdownMenuSubTrigger>
 

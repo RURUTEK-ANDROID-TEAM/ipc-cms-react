@@ -66,6 +66,7 @@ import { AddDeviceForm } from "../forms/add-device-form";
 import { TableWrapper } from "./table-wrapper";
 import { AddGroupForm } from "../forms/add-group-form";
 import { PaginationControls } from "./pagination-controls";
+import axios from "axios";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -190,79 +191,130 @@ export const DataTable = ({
     const token = localStorage.getItem("accessToken");
     if (!token) throw new Error("No access token found");
 
-    const response = await fetch(`${API_URL}/users/${id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updatedData),
-    });
+    try {
+      const res = await axios.put(
+        `${API_URL}/users/${id}`,
+        updatedData, // 👈 this is the request body
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to update user");
+      return res.data;
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        // Handle known axios error
+        console.error("API Error:", error.response?.data || error.message);
+
+        throw new Error(
+          error.response?.data?.message ||
+            `Failed to update user: ${error.response?.status}`
+        );
+      } else {
+        // Handle unknown error
+        console.error("Unexpected Error:", error);
+        throw new Error("Unexpected error while updating user");
+      }
     }
-
-    return response.json();
   };
 
   const updateDevice = async (id: number, updatedData: Partial<DeviceType>) => {
     const token = localStorage.getItem("accessToken");
     if (!token) throw new Error("No access token found");
 
-    const response = await fetch(`${API_URL}/cameras/${id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updatedData),
-    });
+    try {
+      const res = await axios.put(
+        `${API_URL}/cameras/${id}`,
+        updatedData, // 👈 this is the request body
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to update device");
+      return res.data;
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        // Handle known axios error
+        console.error("API Error:", error.response?.data || error.message);
+
+        throw new Error(
+          error.response?.data?.message ||
+            `Failed to update device: ${error.response?.status}`
+        );
+      } else {
+        // Handle unknown error
+        console.error("Unexpected Error:", error);
+        throw new Error("Unexpected error while updating user");
+      }
     }
-
-    return response.json();
   };
 
   const updateGroup = async (id: number, updatedData: Partial<GroupType>) => {
     const token = localStorage.getItem("accessToken");
     if (!token) throw new Error("No access token found");
 
-    const response = await fetch(`${API_URL}/groups/${id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updatedData),
-    });
+    try {
+      const res = await axios.put(
+        `${API_URL}/groups/${id}`,
+        updatedData, // 👈 this is the request body
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to update group");
+      return res.data;
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        // Handle known axios error
+        console.error("API Error:", error.response?.data || error.message);
+
+        throw new Error(
+          error.response?.data?.message ||
+            `Failed to update group: ${error.response?.status}`
+        );
+      } else {
+        // Handle unknown error
+        console.error("Unexpected Error:", error);
+        throw new Error("Unexpected error while updating user");
+      }
     }
-
-    return response.json();
   };
 
   const deleteUser = async (id: number) => {
     const token = localStorage.getItem("accessToken");
     if (!token) throw new Error("No access token found");
 
-    const response = await fetch(`${API_URL}/users/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      const res = await axios.delete(`${API_URL}/users/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to delete user");
+      return res.data;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        // Handle known axios error
+        console.error("API Error:", error.response?.data || error.message);
+
+        throw new Error(
+          error.response?.data?.message ||
+            `Failed to delete user: ${error.response?.status}`
+        );
+      } else {
+        // Handle unknown error
+        console.error("Unexpected Error:", error);
+        throw new Error("Unexpected error while deleting user");
+      }
     }
   };
 
@@ -270,16 +322,25 @@ export const DataTable = ({
     const token = localStorage.getItem("accessToken");
     if (!token) throw new Error("No access token found");
 
-    const response = await fetch(`${API_URL}/cameras/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      const res = await axios.delete(`${API_URL}/cameras/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to delete device");
+      return res.data;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error("API Error:", error.response?.data || error.message);
+        throw new Error(
+          error.response?.data?.message ||
+            `Failed to delete device: ${error.response?.status}`
+        );
+      } else {
+        console.error("Unexpected Error:", error);
+        throw new Error("Unexpected error while deleting device");
+      }
     }
   };
 
@@ -287,16 +348,25 @@ export const DataTable = ({
     const token = localStorage.getItem("accessToken");
     if (!token) throw new Error("No access token found");
 
-    const response = await fetch(`${API_URL}/groups/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      const res = await axios.delete(`${API_URL}/groups/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to delete group");
+      return res.data;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error("API Error:", error.response?.data || error.message);
+        throw new Error(
+          error.response?.data?.message ||
+            `Failed to delete group: ${error.response?.status}`
+        );
+      } else {
+        console.error("Unexpected Error:", error);
+        throw new Error("Unexpected error while deleting group");
+      }
     }
   };
 
@@ -671,26 +741,18 @@ export const DataTable = ({
         const token = localStorage.getItem("accessToken");
         if (!token) throw new Error("No access token found.");
 
-        const res = await fetch(`${API_URL}/users`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ username, password, role: selectedRole }),
-        });
-
-        if (!res.ok) {
-          let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
-          try {
-            const errorData = await res.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-            // If JSON parsing fails, use the HTTP status message
+        const res = await axios.post(
+          `${API_URL}/users`,
+          { username, password, role: selectedRole },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           }
-          throw new Error(errorMessage);
-        }
+        );
 
+        // Reset form state
         setRole("");
         setError(null);
         setOpen(false);
@@ -700,12 +762,23 @@ export const DataTable = ({
         }
 
         toast.success("User added successfully");
-      } catch (error: any) {
-        console.error("Error adding user:", error);
-        const errorMessage =
-          error.message || "An error occurred while adding the user";
-        setError(errorMessage);
-        toast.error(errorMessage);
+        return res.data;
+      } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+          console.error("API Error:", error.response?.data || error.message);
+          const errorMessage =
+            error.response?.data?.message ||
+            `Failed to add user: ${error.response?.status}`;
+          setError(errorMessage);
+          toast.error(errorMessage);
+          throw new Error(errorMessage);
+        } else {
+          console.error("Unexpected Error:", error);
+          const errorMessage = "Unexpected error while adding user";
+          setError(errorMessage);
+          toast.error(errorMessage);
+          throw new Error(errorMessage);
+        }
       } finally {
         setLoading(false);
       }
@@ -713,7 +786,6 @@ export const DataTable = ({
     [role, refreshUsers]
   );
 
-  // Add device handler
   const handleAddDevice = useCallback(
     async (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -738,24 +810,14 @@ export const DataTable = ({
 
         const body = uid ? { uid } : { mac_address };
 
-        const res = await fetch(`${API_URL}/cameras`, {
-          method: "POST",
+        const res = await axios.post(`${API_URL}/cameras`, body, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(body),
         });
 
-        if (!res.ok) {
-          let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
-          try {
-            const errorData = await res.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch {}
-          throw new Error(errorMessage);
-        }
-
+        // Reset state
         setError(null);
         setOpen(false);
 
@@ -765,17 +827,28 @@ export const DataTable = ({
         }
 
         toast.success("Camera assigned successfully");
-      } catch (error: any) {
-        console.error("Error adding camera:", error);
-        const errorMessage =
-          error.message || "An error occurred while adding the camera";
-        setError(errorMessage);
-        toast.error(errorMessage);
+        return res.data;
+      } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+          console.error("API Error:", error.response?.data || error.message);
+          const errorMessage =
+            error.response?.data?.message ||
+            `Failed to add device: ${error.response?.status}`;
+          setError(errorMessage);
+          toast.error(errorMessage);
+          throw new Error(errorMessage);
+        } else {
+          console.error("Unexpected Error:", error);
+          const errorMessage = "Unexpected error while adding camera";
+          setError(errorMessage);
+          toast.error(errorMessage);
+          throw new Error(errorMessage);
+        }
       } finally {
         setLoading(false);
       }
     },
-    [refreshDevices]
+    [refreshDevices, onUpdate]
   );
 
   // Add group handler
@@ -786,8 +859,8 @@ export const DataTable = ({
       setLoading(true);
 
       const formData = new FormData(e.currentTarget);
-      const name = formData.get("name")?.toString();
-      const description = formData.get("description")?.toString();
+      const name = formData.get("name")?.toString().trim();
+      const description = formData.get("description")?.toString().trim();
 
       if (!name || !description) {
         toast.error("Please fill in all fields");
@@ -799,26 +872,18 @@ export const DataTable = ({
         const token = localStorage.getItem("accessToken");
         if (!token) throw new Error("No access token found.");
 
-        const res = await fetch(`${API_URL}/groups`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name, description }),
-        });
-
-        if (!res.ok) {
-          let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
-          try {
-            const errorData = await res.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-            // If JSON parsing fails, use the HTTP status message
+        const res = await axios.post(
+          `${API_URL}/groups`,
+          { name, description },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           }
-          throw new Error(errorMessage);
-        }
+        );
 
+        // Reset state
         setError(null);
         setOpen(false);
 
@@ -827,12 +892,23 @@ export const DataTable = ({
         }
 
         toast.success("Group added successfully");
-      } catch (error: any) {
-        console.error("Error adding group:", error);
-        const errorMessage =
-          error.message || "An error occurred while adding the group";
-        setError(errorMessage);
-        toast.error(errorMessage);
+        return res.data;
+      } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+          console.error("API Error:", error.response?.data || error.message);
+          const errorMessage =
+            error.response?.data?.message ||
+            `Failed to add group: ${error.response?.status}`;
+          setError(errorMessage);
+          toast.error(errorMessage);
+          throw new Error(errorMessage);
+        } else {
+          console.error("Unexpected Error:", error);
+          const errorMessage = "Unexpected error while adding group";
+          setError(errorMessage);
+          toast.error(errorMessage);
+          throw new Error(errorMessage);
+        }
       } finally {
         setLoading(false);
       }

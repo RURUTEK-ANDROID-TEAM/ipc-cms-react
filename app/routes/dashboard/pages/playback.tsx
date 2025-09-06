@@ -1,4 +1,3 @@
-// Playback.tsx (updated with proper URL handling)
 import { PlaybackTimeline } from "@/components/playback/timeline";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
@@ -27,6 +26,7 @@ import {
 } from "react";
 import { useOutletContext, useParams, useNavigate } from "react-router";
 import Hls from "hls.js";
+import axios from "axios";
 
 type OutletHeaderSetter = {
   setHeader?: (ctx: {
@@ -83,18 +83,18 @@ const Playback = () => {
   // --- FETCH DEVICES ---
   useEffect(() => {
     const controller = new AbortController();
+
     const fetchDevices = async () => {
       try {
         const token = localStorage.getItem("accessToken");
         if (!token) throw new Error("No access token found");
 
-        const response = await fetch(`${API_URL}/cameras`, {
+        const response = await axios.get(`${API_URL}/cameras`, {
           headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
+          signal: controller.signal, // axios v1+ supports AbortController
         });
-        if (!response.ok) throw new Error("Failed to fetch devices");
 
-        const data = await response.json();
+        const data = response.data;
         setDevices(data);
 
         // Set selected UID from URL param or first device
@@ -104,11 +104,16 @@ const Playback = () => {
           setSelectedUid(data[0].uid);
           navigate(`/playback/${data[0].uid}`, { replace: true });
         }
-      } catch (err) {
-        console.error(err);
-        setError("Failed to fetch devices");
+      } catch (err: any) {
+        if (axios.isCancel(err)) {
+          console.log("Request canceled:", err.message);
+        } else {
+          console.error(err);
+          setError("Failed to fetch devices");
+        }
       }
     };
+
     fetchDevices();
     return () => controller.abort();
   }, [uid, navigate]);
@@ -157,22 +162,24 @@ const Playback = () => {
   useEffect(() => {
     if (!selectedUid || !date) return;
     const controller = new AbortController();
+
     const fetchRecordings = async () => {
       setLoading(true);
       setError(null);
+
       try {
         const pad = (n: number) => String(n).padStart(2, "0");
         const dateStr = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
-        const response = await fetch(
-          `${RECORD_API_URL}?uid=${encodeURIComponent(selectedUid)}&startdate=${dateStr}`,
-          {
-            signal: controller.signal,
-          }
-        );
-        if (!response.ok) throw new Error(response.statusText);
+        const response = await axios.get(RECORD_API_URL, {
+          params: {
+            uid: selectedUid,
+            startdate: dateStr,
+          },
+          signal: controller.signal,
+        });
 
-        const data = await response.json();
+        const data = response.data;
         const mapped: Recording[] = data
           .filter(
             (r: any) =>
@@ -193,13 +200,15 @@ const Playback = () => {
 
         setRecordings(mapped);
         if (mapped.length === 0) setError(`No recordings for ${dateStr}`);
-      } catch (err) {
-        if (err instanceof Error && err.name !== "AbortError")
+      } catch (err: any) {
+        if (!axios.isCancel(err)) {
           setError(`Failed to fetch recordings: ${err.message}`);
+        }
       } finally {
         setLoading(false);
       }
     };
+
     fetchRecordings();
     return () => controller.abort();
   }, [selectedUid, date]);

@@ -39,7 +39,7 @@ export const AddDeviceForm = ({
       <DialogHeader className="mb-4">
         <DialogTitle>Add Device</DialogTitle>
         <DialogDescription>
-          Provide at least one unique identifier to add a device.
+          Provide either MAC Address or UID to add device.
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4">
@@ -50,6 +50,11 @@ export const AddDeviceForm = ({
         )}
         <div className="grid gap-3">
           <Label htmlFor="macAddress">MAC Address</Label>
+          <DialogDescription>
+            The MAC address number is printed on the body of the device and on
+            the box. The MAC address consists of 12 numbers or Latin characters
+            ranging from A to F. For example, 00:AB:CD:12:FF:34.
+          </DialogDescription>
           <Input
             id="mac_address"
             name="mac_address"
@@ -57,11 +62,16 @@ export const AddDeviceForm = ({
             value={macAddress}
             onChange={(e) => setMacAddress(e.target.value)}
             disabled={loading}
-            placeholder="e.g., 00:11:22:33:44:55"
+            placeholder="e.g., 00:AB:CD:12:FF:34"
           />
         </div>
         <div className="grid gap-3">
           <Label htmlFor="uid">UID</Label>
+          <DialogDescription>
+            UID is a unique identification number of a video surveillance camera
+            assigned during the manufacture of the device. For example,
+            RI123456789101112.
+          </DialogDescription>
           <Input
             id="uid"
             name="uid"
@@ -69,7 +79,7 @@ export const AddDeviceForm = ({
             value={uid}
             onChange={(e) => setUid(e.target.value)}
             disabled={loading}
-            placeholder="Device unique identifier"
+            placeholder="e.g., RI123456789101112"
           />
         </div>
       </div>

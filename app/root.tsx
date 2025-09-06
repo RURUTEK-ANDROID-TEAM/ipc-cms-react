@@ -10,7 +10,7 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import type { ReactNode } from "react";
-import { ThemeProvider } from "./components/theme/theme-provider";
+import { ThemeProvider } from "./hooks/use-theme-provider";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -52,7 +52,7 @@ export function Layout({ children }: { children: ReactNode }) {
         />
       </head>
       <body cz-shortcut-listen="true">
-        <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
           {children}
         </ThemeProvider>
         <ScrollRestoration />

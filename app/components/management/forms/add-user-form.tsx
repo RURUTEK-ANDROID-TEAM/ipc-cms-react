@@ -66,6 +66,16 @@ export const AddUserForm = ({
           />
         </div>
         <div className="grid gap-3">
+          <Label htmlFor="username">E-Mail</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            required
+            disabled={loading}
+          />
+        </div>
+        <div className="grid gap-3">
           <Label htmlFor="password">Password</Label>
           <Input
             id="password"

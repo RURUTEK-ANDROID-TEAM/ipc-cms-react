@@ -1,5 +1,6 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import axios from "axios";
 import { Video, VideoOffIcon } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 
@@ -13,6 +14,8 @@ interface CameraData {
   offlineCamerasCount: number | null;
 }
 
+const API_URL = "http://172.16.0.157:5000/api";
+
 export function SectionCards({ refreshKey }: SectionCardsProps) {
   const [cameraData, setCameraData] = useState<CameraData>({
     totalCameraCount: null,
@@ -23,14 +26,13 @@ export function SectionCards({ refreshKey }: SectionCardsProps) {
   const fetchCameras = useCallback(async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("http://172.16.0.157:5000/api/cameras", {
-        method: "GET",
+
+      const res = await axios.get(`${API_URL}/cameras`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) throw new Error("Failed to fetch cameras");
+      const data = res.data;
 
-      const data = await res.json();
       setCameraData((prev) => ({ ...prev, totalCameraCount: data.length }));
     } catch (error) {
       console.error("Failed to fetch cameras:", error);

@@ -6,6 +6,7 @@ import { HoverCard, HoverCardContent } from "@/components/ui/hover-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWebRTC } from "@/hooks/use-webrtc";
 import { HoverCardTrigger } from "@radix-ui/react-hover-card";
+import axios from "axios";
 import { RefreshCw } from "lucide-react";
 import {
   useCallback,
@@ -62,33 +63,37 @@ const Groups = () => {
       if (!token) throw new Error("No access token found. Please log in.");
 
       const headers = { Authorization: `Bearer ${token}` };
-      const groupsRes = await fetch(`${API_URL}/groups`, { headers });
 
-      if (!groupsRes.ok) {
-        throw new Error(`Error ${groupsRes.status}: ${groupsRes.statusText}`);
-      }
+      // ✅ Fetch groups
+      const groupsRes = await axios.get<Group[]>(`${API_URL}/groups`, {
+        headers,
+      });
+      const groupsData = groupsRes.data;
 
-      const groupsData: Group[] = await groupsRes.json();
       setGroups(groupsData);
       console.log("📋 Groups fetched:", groupsData);
 
-      // Fetch devices for each group in parallel
+      // ✅ Fetch devices for each group in parallel
       const deviceFetches = groupsData.map(async (group) => {
-        const res = await fetch(`${API_URL}/groups/${group.id}/devices`, {
-          headers,
-        });
-        if (!res.ok) return [group.id, []] as const;
-        const data: DeviceType[] = await res.json();
-        return [group.id, data] as const;
+        try {
+          const res = await axios.get<DeviceType[]>(
+            `${API_URL}/groups/${group.id}/devices`,
+            { headers }
+          );
+          return [group.id, res.data] as const;
+        } catch {
+          return [group.id, []] as const; // if a group fails, just fallback empty
+        }
       });
 
       const deviceEntries = await Promise.all(deviceFetches);
+
       setDevicesByGroup(Object.fromEntries(deviceEntries));
-      setActiveTab(groupsData[0]?.id?.toString()); // Set default tab
-    } catch (err) {
+      setActiveTab(groupsData[0]?.id?.toString()); // default tab
+    } catch (err: any) {
       console.error("❌ Error fetching groups:", err);
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch groups";
+        err.response?.data?.message || err.message || "Failed to fetch groups";
       setError(errorMessage);
     } finally {
       setLoading(false);

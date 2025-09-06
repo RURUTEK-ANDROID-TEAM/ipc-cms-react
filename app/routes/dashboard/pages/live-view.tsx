@@ -6,6 +6,7 @@ import { LayoutDropdown } from "@/components/live-view/layout-dropdown";
 import { CameraGrid } from "@/components/live-view/camera-grid";
 import type { DeviceType } from "@/components/management/schemas/schemas";
 import { useWebRTC } from "@/hooks/use-webrtc";
+import axios from "axios";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -43,18 +44,16 @@ const LiveView = () => {
       setError(null);
 
       const token = localStorage.getItem("accessToken");
-      if (!token) {
-        throw new Error("No access token found. Please log in.");
-      }
+      if (!token) throw new Error("No access token found. Please log in.");
 
       const headers = { Authorization: `Bearer ${token}` };
-      const response = await fetch(`${API_URL}/cameras`, { headers });
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
+      // ✅ Axios handles response parsing automatically
+      const res = await axios.get<DeviceType[]>(`${API_URL}/cameras`, {
+        headers,
+      });
+      const fetchedCameras = res.data;
 
-      const fetchedCameras: DeviceType[] = await response.json();
       console.log("📷 Cameras fetched from API:", fetchedCameras);
 
       setCameras(fetchedCameras);
@@ -76,17 +75,16 @@ const LiveView = () => {
         newUIDs.forEach((uid) => {
           if (!prevUIDs.includes(uid)) {
             console.log(`🆕 New camera ${uid} detected, adding stream`);
-            // Add a small delay to ensure DOM is ready
             setTimeout(() => addStream(uid, "main"), 100);
           }
         });
 
         return newUIDs;
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("❌ Error fetching cameras:", err);
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch cameras";
+        err.response?.data?.message || err.message || "Failed to fetch cameras";
       setError(errorMessage);
     } finally {
       setLoading(false);

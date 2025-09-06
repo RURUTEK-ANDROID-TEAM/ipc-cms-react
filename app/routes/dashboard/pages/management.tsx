@@ -1,4 +1,10 @@
 import { DataTable } from "@/components/management/data-table/data-table";
+import type {
+  DeviceType,
+  GroupType,
+  UserType,
+} from "@/components/management/schemas/schemas";
+import axios from "axios";
 import {
   useEffect,
   useRef,
@@ -8,6 +14,10 @@ import {
   type ReactNode,
 } from "react";
 import { useOutletContext } from "react-router";
+import { toast } from "sonner";
+
+const API_URL = "http://172.16.0.157:5000/api";
+const WS_URL = "ws://172.16.0.157:5001/camdata";
 
 type OutletHeaderSetter = {
   setHeader?: (ctx: {
@@ -34,9 +44,6 @@ const Management: FC<ManagementProps> = ({
   const [groups, setGroups] = useState<any[]>([]);
   const [onlineUIDs, setOnlineUIDs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const API_URL = "http://172.16.0.157:5000/api";
-  const WS_URL = "ws://172.16.0.157:5001/camdata";
 
   useEffect(() => {
     return () => {
@@ -66,39 +73,45 @@ const Management: FC<ManagementProps> = ({
         if (!token) throw new Error("No access token found");
 
         const headers = { Authorization: `Bearer ${token}` };
-        const fetchPromises = [
-          fetch(`${API_URL}/cameras`, { headers }),
-          fetch(`${API_URL}/groups`, { headers }),
-        ];
+
+        // Build requests dynamically
+        const requests = hideUsersTable
+          ? [
+              axios.get<DeviceType[]>(`${API_URL}/cameras`, { headers }),
+              axios.get<GroupType[]>(`${API_URL}/groups`, { headers }),
+            ]
+          : [
+              axios.get<UserType[]>(`${API_URL}/users`, { headers }),
+              axios.get<DeviceType[]>(`${API_URL}/cameras`, { headers }),
+              axios.get<GroupType[]>(`${API_URL}/groups`, { headers }),
+            ];
+
+        const responses = await Promise.all(requests);
 
         if (!hideUsersTable) {
-          fetchPromises.unshift(fetch(`${API_URL}/users`, { headers }));
-        }
-
-        const responses = await Promise.all(fetchPromises);
-        const data = await Promise.all(responses.map((r) => r.json()));
-
-        if (!hideUsersTable) {
-          setUsers(data[0]);
-          setDevices(data[1]);
-          setGroups(data[2]);
+          setUsers(responses[0].data);
+          setDevices(responses[1].data);
+          setGroups(responses[2].data);
         } else {
           setUsers([]);
-          setDevices(data[0]);
-          setGroups(data[1]);
+          setDevices(responses[0].data);
+          setGroups(responses[1].data);
         }
-      } catch (error) {
-        console.error("Fetch error:", error);
+      } catch (err: any) {
+        console.error("❌ Fetch error:", err);
         setUsers([]);
         setDevices([]);
         setGroups([]);
+
+        const errorMessage =
+          err.response?.data?.message || err.message || "Failed to fetch data";
+        toast.error(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
     console.log("Hide Users Table: ", hideUsersTable);
-
     fetchData();
   }, [hideUsersTable]);
 
@@ -145,29 +158,39 @@ const Management: FC<ManagementProps> = ({
   }
 
   async function fetchUsers() {
-    const token = localStorage.getItem("accessToken");
-    const res = await fetch("http://172.16.0.157:5000/api/users", {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setUsers(await res.json());
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await axios.get(`${API_URL}/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsers(res.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
   }
 
   async function fetchDevices() {
-    const token = localStorage.getItem("accessToken");
-    const res = await fetch("http://172.16.0.157:5000/api/cameras", {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setDevices(await res.json());
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await axios.get(`${API_URL}/cameras`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDevices(res.data);
+    } catch (error) {
+      console.error("Error fetching devices:", error);
+    }
   }
 
   async function fetchGroups() {
-    const token = localStorage.getItem("accessToken");
-    const res = await fetch("http://172.16.0.157:5000/api/groups", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setGroups(await res.json());
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await axios.get(`${API_URL}/groups`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setGroups(res.data);
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+    }
   }
 
   return (
