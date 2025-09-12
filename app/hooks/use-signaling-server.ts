@@ -2,23 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const DEFAULT_SIGNALING_URL = "ws://172.16.0.157:9595/wsse";
 
-const DEFAULT_ICE: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:172.16.0.147:3478" },
-    {
-      urls: "turn:172.16.0.147:3478?transport=udp",
-      username: "rurutek",
-      credential: "ruru@123",
-    },
-    {
-      urls: "turn:172.16.0.147:5349?transport=tcp",
-      username: "rurutek",
-      credential: "ruru@123",
-    },
-  ],
-};
-
-export const useSignalingServer = (signalingUrl: string) => {
+export const useSignalingServer = (
+  signalingUrl: string = DEFAULT_SIGNALING_URL
+) => {
   const wsRef = useRef<WebSocket | null>(null);
   const [state, setState] = useState<
     "connecting" | "connected" | "disconnected"
@@ -63,21 +49,19 @@ export const useSignalingServer = (signalingUrl: string) => {
   const connect = useCallback(() => {
     if (!mounted.current) return;
 
-    // clear existing timer
     if (reconnectTimer.current) {
       clearTimeout(reconnectTimer.current);
       reconnectTimer.current = null;
     }
 
-    // Already open/connecting
     if (
       wsRef.current &&
       (wsRef.current.readyState === WebSocket.OPEN ||
         wsRef.current.readyState === WebSocket.CONNECTING)
-    )
+    ) {
       return;
+    }
 
-    // Clean old
     if (wsRef.current) {
       try {
         wsRef.current.close();
@@ -110,14 +94,20 @@ export const useSignalingServer = (signalingUrl: string) => {
     ws.onmessage = async (evt) => {
       if (!mounted.current) return;
       let text: string;
-      if (evt.data instanceof ArrayBuffer)
+      if (evt.data instanceof ArrayBuffer) {
         text = new TextDecoder().decode(evt.data);
-      else if (evt.data instanceof Blob) text = await (evt.data as Blob).text();
-      else text = String(evt.data);
+      } else if (evt.data instanceof Blob) {
+        text = await evt.data.text();
+      } else {
+        text = String(evt.data);
+      }
 
       try {
         const json = JSON.parse(text);
-        // Bubble the event through a custom event so consumers can listen.
+        if (json.type === "ping") {
+          send({ type: "pong" });
+          return;
+        }
         window.dispatchEvent(
           new CustomEvent("signaling:message", { detail: json })
         );
@@ -131,7 +121,7 @@ export const useSignalingServer = (signalingUrl: string) => {
       if (!mounted.current) return;
       setState("disconnected");
 
-      if (e.code === 1000) return; // normal
+      if (e.code === 1000) return;
 
       if (reconnectAttempts.current >= maxReconnect) {
         console.error("Max reconnect attempts reached");

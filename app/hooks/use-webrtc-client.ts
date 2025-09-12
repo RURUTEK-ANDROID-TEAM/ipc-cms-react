@@ -10,21 +10,30 @@ export const useWebRTCClient = (
   const videos = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [active, setActive] = useState<Set<string>>(new Set());
   const pendingCandidates = useRef<Record<string, RTCIceCandidateInit[]>>({});
+  const [pendingStreams, setPendingStreams] = useState<
+    Map<string, { kind: string; retries: number }>
+  >(new Map());
+  const maxRetries = 3;
 
   const ensureVideoEl = (uid: string) => {
     const container = document.getElementById(`streamContainer-${uid}`);
     if (!container) return null;
-    let video = videos.current.get(uid);
+
+    let video = container.querySelector(
+      "video.video-stream"
+    ) as HTMLVideoElement;
     if (!video) {
       video = document.createElement("video");
+      video.className = "video-stream";
       video.autoplay = true;
       video.muted = true;
       video.playsInline = true;
       video.style.width = "100%";
       video.style.height = "100%";
       video.style.objectFit = "cover";
-      container.innerHTML = "";
       container.appendChild(video);
+      videos.current.set(uid, video);
+    } else {
       videos.current.set(uid, video);
     }
     return video;
@@ -32,7 +41,6 @@ export const useWebRTCClient = (
 
   const initPeer = useCallback(
     (uid: string) => {
-      // Cleanup existing
       if (peers.current[uid]) {
         try {
           peers.current[uid].close();
@@ -46,7 +54,6 @@ export const useWebRTCClient = (
 
       pc.onicecandidate = (ev) => {
         if (ev.candidate) {
-          // Send the whole candidate object, server can normalize
           send({
             type: "webrtc/candidate",
             value: ev.candidate,
@@ -99,7 +106,47 @@ export const useWebRTCClient = (
     [send]
   );
 
-  // Handle signaling messages
+  const addStream = useCallback(
+    (uid: string, kind: string = "main") => {
+      setPendingStreams((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(uid, { kind, retries: 0 });
+        return newMap;
+      });
+      send({ type: "changeStream", value: kind, uid: `cus-${uid}` });
+    },
+    [send]
+  );
+
+  const removeStream = useCallback((uid: string) => {
+    const pc = peers.current[uid];
+    if (pc) {
+      try {
+        pc.close();
+      } catch {}
+      delete peers.current[uid];
+    }
+    const video = videos.current.get(uid);
+    if (video) {
+      video.srcObject = null;
+      if (video.parentElement) {
+        video.parentElement.removeChild(video);
+      }
+      videos.current.delete(uid);
+    }
+    setActive((prev) => {
+      const s = new Set(prev);
+      s.delete(uid);
+      return s;
+    });
+    setPendingStreams((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(uid);
+      return newMap;
+    });
+    delete pendingCandidates.current[uid];
+  }, []);
+
   useEffect(() => {
     const onMsg = async (e: any) => {
       const data = e.detail;
@@ -107,11 +154,24 @@ export const useWebRTCClient = (
         ?.replace("cus-", "")
         .replace("ser-", "");
       if (!uid) return;
-      const pc = peers.current[uid];
-      if (!pc) return;
 
       switch (data.type) {
+        case "newProducer": {
+          const pc = initPeer(uid);
+          setPendingStreams((prev) => {
+            const kind = prev.get(uid)?.kind || "main";
+            setTimeout(() => createOffer(uid), 150);
+            return prev;
+          });
+          break;
+        }
+        case "producerClosed": {
+          removeStream(uid);
+          break;
+        }
         case "webrtc/answer": {
+          const pc = peers.current[uid];
+          if (!pc) return;
           try {
             await pc.setRemoteDescription({ type: "answer", sdp: data.value });
             const pend = pendingCandidates.current[uid] || [];
@@ -129,6 +189,8 @@ export const useWebRTCClient = (
           break;
         }
         case "webrtc/candidate": {
+          const pc = peers.current[uid];
+          if (!pc) return;
           try {
             let cand: any = data.value;
             if (typeof cand === "string") {
@@ -139,16 +201,52 @@ export const useWebRTCClient = (
               }
             }
             const norm: RTCIceCandidateInit = {
-              candidate: cand.candidate ?? cand.sdp ?? "",
+              candidate:
+                cand.candidate ||
+                cand.candidateLine ||
+                (typeof cand === "string" ? cand : ""),
               sdpMLineIndex: cand.sdpMLineIndex ?? 0,
               sdpMid: cand.sdpMid ?? null,
             };
-            if (!norm.candidate) return;
-            if (pc.remoteDescription)
+            if (!norm.candidate) {
+              console.warn("Invalid ICE candidate received", data.value);
+              return;
+            }
+            if (pc.remoteDescription) {
               await pc.addIceCandidate(new RTCIceCandidate(norm));
-            else (pendingCandidates.current[uid] ||= []).push(norm);
+            } else {
+              (pendingCandidates.current[uid] ||= []).push(norm);
+            }
           } catch (err) {
             console.warn("ICE candidate error", err, data.value);
+          }
+          break;
+        }
+        case "error": {
+          if (
+            data.message.includes("No producer found for uid") ||
+            data.message.includes("Unknown message type")
+          ) {
+            setPendingStreams((prev) => {
+              const stream = prev.get(uid);
+              if (!stream || stream.retries >= maxRetries) {
+                console.warn(`Max retries reached for stream ${uid}`);
+                prev.delete(uid);
+                return new Map(prev);
+              }
+              setTimeout(() => {
+                send({
+                  type: "changeStream",
+                  value: stream.kind,
+                  uid: `cus-${uid}`,
+                });
+                setTimeout(() => createOffer(uid), 150);
+              }, 1000);
+              return new Map(prev).set(uid, {
+                ...stream,
+                retries: stream.retries + 1,
+              });
+            });
           }
           break;
         }
@@ -157,48 +255,7 @@ export const useWebRTCClient = (
 
     window.addEventListener("signaling:message", onMsg as any);
     return () => window.removeEventListener("signaling:message", onMsg as any);
-  }, []);
-
-  const requestStream = useCallback(
-    (uid: string, kind: string) => {
-      // Let server switch/prepare the stream (main/sub/etc)
-      send({ type: "changeStream", value: kind, uid: `cus-${uid}` });
-    },
-    [send]
-  );
-
-  const addStream = useCallback(
-    (uid: string, kind: string = "main") => {
-      const pc = initPeer(uid);
-      // slight delay so the server is ready before we offer
-      setTimeout(() => {
-        requestStream(uid, kind);
-        setTimeout(() => createOffer(uid), 150);
-      }, 200);
-    },
-    [createOffer, initPeer, requestStream]
-  );
-
-  const removeStream = useCallback((uid: string) => {
-    const pc = peers.current[uid];
-    if (pc) {
-      try {
-        pc.close();
-      } catch {}
-      delete peers.current[uid];
-    }
-    const video = videos.current.get(uid);
-    if (video) {
-      video.srcObject = null;
-      videos.current.delete(uid);
-    }
-    setActive((prev) => {
-      const s = new Set(prev);
-      s.delete(uid);
-      return s;
-    });
-    delete pendingCandidates.current[uid];
-  }, []);
+  }, [createOffer, initPeer, removeStream, send]);
 
   return {
     active: Array.from(active),

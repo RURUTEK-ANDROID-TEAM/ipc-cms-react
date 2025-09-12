@@ -5,7 +5,7 @@ import { type FC } from "react";
 type CameraGridProps = {
   cameraUIDs: string[];
   recordingState: Record<string, boolean>;
-  toggleRecording: (uid: string) => void;
+  toggleRecording: (uid: string, producerId: string) => void; // ✅ two args
   viewLayout: string;
 };
 
@@ -54,7 +54,14 @@ export const CameraGrid: FC<CameraGridProps> = ({
                           ? "text-red-600 drop-shadow-lg"
                           : "text-white"
                       }`}
-                      onClick={() => toggleRecording(uid)}
+                      onClick={() => {
+                        const container = document.getElementById(
+                          `streamContainer-${uid}`
+                        );
+                        const producerId =
+                          container?.getAttribute("data-producer-id"); // store producerId somewhere
+                        if (producerId) toggleRecording(uid, producerId);
+                      }}
                     />
 
                     {/* Bottom info */}
