@@ -1,30 +1,35 @@
-import { IconUser, IconUserPentagon, IconUserStar } from "@tabler/icons-react";
-import { Badge } from "@/components/ui/badge"; // Using shadcn/ui Badge
-import type { ComponentType } from "react";
+import { Badge } from "@/components/ui/badge"; // shadcn/ui Badge
+import {
+  AdminUserIcon,
+  OperatorUserIcon,
+  ViewerUserIcon,
+  type IconHandle,
+} from "@/components/ui/user";
+import { useRef } from "react";
 
-// Define the shape of a role configuration
 interface RoleConfig {
-  icon: ComponentType<{ className?: string }>;
+  icon: React.ForwardRefExoticComponent<
+    React.PropsWithoutRef<{ className?: string }> &
+      React.RefAttributes<IconHandle>
+  >;
   color: string;
 }
 
-// Define the props for the RoleBadge component
 interface RoleBadgeProps {
   role: string;
 }
 
-// Map roles to specific icons and Tailwind CSS classes for color
 const roleConfig: Record<string, RoleConfig> = {
   admin: {
-    icon: IconUserPentagon,
+    icon: AdminUserIcon,
     color: "bg-red-500 hover:bg-red-600",
   },
   operator: {
-    icon: IconUser,
+    icon: OperatorUserIcon,
     color: "bg-blue-500 hover:bg-blue-600",
   },
   default: {
-    icon: IconUserStar,
+    icon: ViewerUserIcon,
     color: "bg-gray-500 hover:bg-gray-600",
   },
 };
@@ -34,15 +39,20 @@ export const RoleBadge = ({ role }: RoleBadgeProps) => {
   const roleName = roleRaw.charAt(0).toUpperCase() + roleRaw.slice(1);
   const { icon: Icon, color } = roleConfig[roleRaw] || roleConfig.default;
 
+  // 👇 hook into the animation API from UserIcon
+  const iconRef = useRef<IconHandle>(null);
+
   return (
     <Badge
       variant="secondary"
+      onMouseEnter={() => iconRef.current?.startAnimation()}
+      onMouseLeave={() => iconRef.current?.stopAnimation()}
       className={`
         inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium 
         text-white ${color} transition-colors
       `}
     >
-      <Icon className="size-3.5" />
+      <Icon ref={iconRef} className="size-3.5" />
       {roleName}
     </Badge>
   );

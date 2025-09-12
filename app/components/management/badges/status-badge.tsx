@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { ConnectIcon } from "@/components/ui/connect";
 import { CheckCircle2Icon, XCircleIcon } from "lucide-react";
 import type { FC } from "react";
 
@@ -20,7 +21,7 @@ export const StatusBadge: FC<StatusBadgeProps> = ({ status = false }) => {
       `}
     >
       {status ? (
-        <CheckCircle2Icon className="size-3.5" />
+        <ConnectIcon className="size-3.5" />
       ) : (
         <XCircleIcon className="size-3.5" />
       )}
