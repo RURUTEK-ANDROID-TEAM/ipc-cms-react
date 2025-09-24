@@ -76,6 +76,9 @@ export const DataTable = ({
   devices: initDevices = [],
   groups: initGroups = [],
   hideUsersTable = false,
+  showAddUsers = false,
+  showAddDevices = false,
+  showAddGroups = false,
   refreshUsers,
   refreshDevices,
   refreshGroups,
@@ -85,6 +88,9 @@ export const DataTable = ({
   devices?: DeviceType[];
   groups?: GroupType[];
   hideUsersTable?: boolean;
+  showAddUsers?: boolean;
+  showAddDevices?: boolean;
+  showAddGroups?: boolean;
   refreshUsers?: () => Promise<void>;
   refreshDevices?: () => Promise<void>;
   refreshGroups?: () => Promise<void>;
@@ -1024,24 +1030,28 @@ export const DataTable = ({
 
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <IconPlus />
-                  <span className="hidden lg:inline">
-                    Add{" "}
-                    {activeTab === "users"
-                      ? "User"
-                      : activeTab === "devices"
-                        ? "Device"
-                        : "Group"}
-                  </span>
-                  <span className="lg:hidden">
-                    {activeTab === "users"
-                      ? "User"
-                      : activeTab === "devices"
-                        ? "Device"
-                        : "Group"}
-                  </span>
-                </Button>
+                {(activeTab === "users" && showAddUsers) ||
+                (activeTab === "devices" && showAddDevices) ||
+                (activeTab === "groups" && showAddGroups) ? (
+                  <Button variant="outline" size="sm">
+                    <IconPlus />
+                    <span className="hidden lg:inline">
+                      Add{" "}
+                      {activeTab === "users"
+                        ? "User"
+                        : activeTab === "devices"
+                          ? "Device"
+                          : "Group"}
+                    </span>
+                    <span className="lg:hidden">
+                      {activeTab === "users"
+                        ? "User"
+                        : activeTab === "devices"
+                          ? "Device"
+                          : "Group"}
+                    </span>
+                  </Button>
+                ) : null}
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 {activeTab === "users" && (
