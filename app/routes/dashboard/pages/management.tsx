@@ -45,6 +45,10 @@ const Management: FC<ManagementProps> = ({
   const [onlineUIDs, setOnlineUIDs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [showAddUsers, setShowAddUsers] = useState(true);
+  const [showAddDevices, setShowAddDevices] = useState(true);
+  const [showAddGroups, setShowAddGroups] = useState(true);
+
   useEffect(() => {
     return () => {
       if (hideUsersTable) {
@@ -65,6 +69,36 @@ const Management: FC<ManagementProps> = ({
       }
     };
   }, [hideUsersTable]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        if (!token) throw new Error("No access token found");
+
+        const headers = { Authorization: `Bearer ${token}` };
+        const profileResponse = await axios.post<{ roles: string[] }>(
+          `${API_URL}/auth/profile`,
+          {},
+          { headers }
+        );
+        const userRole = profileResponse.data.roles[0];
+
+        // Set add permissions based on role
+        setShowAddUsers(userRole === "admin");
+        setShowAddDevices(userRole === "admin" || userRole === "operator");
+        setShowAddGroups(userRole === "admin" || userRole === "operator");
+      } catch (err: any) {
+        console.error(`Profile fetch error: ${err}`);
+        setShowAddUsers(false);
+        setShowAddDevices(false);
+        setShowAddGroups(false);
+        toast.error(`Failed to fetch profile data`);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -202,6 +236,9 @@ const Management: FC<ManagementProps> = ({
       refreshDevices={fetchDevices}
       refreshGroups={fetchGroups}
       hideUsersTable={hideUsersTable}
+      showAddUsers={showAddUsers}
+      showAddDevices={showAddDevices}
+      showAddGroups={showAddGroups}
       onUpdate={onUpdate}
     />
   );

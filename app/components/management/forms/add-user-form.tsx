@@ -22,12 +22,14 @@ import { Button } from "../../ui/button";
 
 export const AddUserForm = ({
   onSubmit,
+
   loading,
   error,
   role,
   setRole,
 }: {
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+
   loading: boolean;
   error: string | null;
   role: string;

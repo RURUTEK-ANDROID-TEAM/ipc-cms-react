@@ -1,4 +1,5 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { CctvIcon } from "@/components/ui/cctv";
 import { Skeleton } from "@/components/ui/skeleton";
 import axios from "axios";
 import { Video, VideoOffIcon } from "lucide-react";
@@ -99,7 +100,9 @@ export function SectionCards({ refreshKey }: SectionCardsProps) {
           <CardTitle className="text-lg font-medium text-gray-700 dark:text-gray-200">
             {title}
           </CardTitle>
-          <Icon className={`h-6 w-6 ${iconColor}`} />
+          {/* <Icon className={`h-6 w-6 ${iconColor}`} />
+           */}
+          <CctvIcon className={`h-6 w-6 ${iconColor}`} />
         </div>
         <CardTitle className="mt-2 text-2xl font-bold tabular-nums @[250px]/card:text-3xl">
           {count !== null ? (

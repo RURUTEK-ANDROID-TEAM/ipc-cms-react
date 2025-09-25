@@ -15,6 +15,7 @@ import {
   IconTimelineEventPlus,
   IconUsers,
   IconVideo,
+  type Icon as TablerIcon,
 } from "@tabler/icons-react";
 import {
   Sidebar,
@@ -30,8 +31,29 @@ import { NavSecondary } from "../navigation/nav-secondary";
 import { NavUser } from "../navigation/nav-user";
 import { NavAIFeatures } from "../navigation/nav-ai-features";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { ComponentProps } from "react";
-import { ModeToggle } from "../../theme/mode-toggle";
+import { useEffect, useState, type ComponentProps } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { useTheme } from "@/hooks/use-theme-provider";
+
+const API_URL = "http://172.16.0.157:5000/api";
+
+type UserRole = "admin" | "operator" | "viewer" | null;
+
+// Navigation item interfaces with role-based visibility
+interface NavItem {
+  title: string;
+  url: string;
+  icon: TablerIcon;
+  roles?: UserRole[];
+}
+
+interface DocumentItem {
+  name: string;
+  url: string;
+  icon: TablerIcon;
+  roles?: UserRole[];
+}
 
 const data = {
   user: {
@@ -44,31 +66,37 @@ const data = {
       title: "Dashboard",
       url: "/dashboard",
       icon: IconDashboard,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       title: "Live View",
       url: "/dashboard/live-view",
       icon: IconVideo,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       title: "Groups",
       url: "/dashboard/groups",
       icon: IconCardsFilled,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       title: "Playback",
       url: "/dashboard/playback",
       icon: IconArrowBackUp,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       title: "Management",
       url: "/dashboard/management",
       icon: IconAdjustments,
+      roles: ["admin"] as UserRole[],
     },
     {
       title: "Events",
       url: "#",
       icon: IconTimelineEventPlus,
+      roles: ["admin", "operator"] as UserRole[],
     },
   ],
   navClouds: [
@@ -78,45 +106,30 @@ const data = {
       isActive: true,
       url: "#",
       items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
+        { title: "Active Proposals", url: "#" },
+        { title: "Archived", url: "#" },
       ],
+      roles: ["admin"] as UserRole[],
     },
     {
       title: "Proposal",
       icon: IconFileDescription,
       url: "#",
       items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
+        { title: "Active Proposals", url: "#" },
+        { title: "Archived", url: "#" },
       ],
+      roles: ["admin"] as UserRole[],
     },
     {
       title: "Prompts",
       icon: IconFileAi,
       url: "#",
       items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
+        { title: "Active Proposals", url: "#" },
+        { title: "Archived", url: "#" },
       ],
+      roles: ["admin"] as UserRole[],
     },
   ],
   navSecondary: [
@@ -124,11 +137,13 @@ const data = {
       title: "Settings",
       url: "#",
       icon: IconSettings,
+      roles: ["admin"] as UserRole[],
     },
     {
       title: "Get Help",
       url: "#",
       icon: IconHelp,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
   ],
   documents: [
@@ -136,36 +151,90 @@ const data = {
       name: "Faces",
       url: "#",
       icon: IconFaceId,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       name: "Heat Maps",
       url: "#",
       icon: IconTemperatureSun,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       name: "People",
       url: "#",
       icon: IconUsers,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       name: "Visitors",
       url: "#",
       icon: IconUsers,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       name: "ANPR",
       url: "#",
       icon: IconCar,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       name: "Timelapse",
       url: "#",
       icon: IconCalendarClock,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
   ],
 };
 
 export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
+  const [userRole, setUserRole] = useState<UserRole>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        if (!token) throw new Error("No access token found");
+
+        const headers = { Authorization: `Bearer ${token}` };
+        const profileResponse = await axios.post<{ roles: string[] }>(
+          `${API_URL}/auth/profile`,
+          {},
+          { headers }
+        );
+        const role = profileResponse.data.roles[0] as UserRole;
+
+        setUserRole(role);
+      } catch (err: any) {
+        console.error(`Profile fetch error: ${err}`);
+        toast.error("Failed to fetch profile data. Using default permissions.");
+        setUserRole("viewer"); // Fallback to viewer role
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  // Filter items based on user role
+  const filterByRole = <T extends { roles?: UserRole[] }>(
+    items: T[],
+    role: UserRole
+  ): T[] => {
+    if (!role) return [];
+    return items.filter((item) => !item.roles || item.roles.includes(role));
+  };
+
+  const filteredNavMain = filterByRole(data.navMain, userRole);
+  const filteredDocuments = filterByRole(data.documents, userRole);
+  const filteredNavSecondary = filterByRole(data.navSecondary, userRole);
+
+  if (isLoading) {
+    return null; // Or a loading spinner
+  }
+
   return (
     <Sidebar
       collapsible="offcanvas"
@@ -182,7 +251,11 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
             >
               <a href="/dashboard">
                 <img
-                  src="/rurutek_logo.png"
+                  src={
+                    theme === "dark"
+                      ? "/rurutek_logo_dark.png"
+                      : "/rurutek_logo.png"
+                  }
                   alt="Rurutek Logo"
                   className="w-8 h-auto mb-2 mt-2"
                 />
@@ -195,13 +268,13 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
 
-      {/* Scrollable middle content - this is the key fix */}
+      {/* Scrollable middle content */}
       <div className="flex-1 min-h-0">
         <ScrollArea className="h-full">
           <SidebarContent className="px-0">
-            <NavMain items={data.navMain} />
-            <NavAIFeatures items={data.documents} />
-            <NavSecondary items={data.navSecondary} className="mt-auto" />
+            <NavMain items={filteredNavMain} />
+            <NavAIFeatures items={filteredDocuments} />
+            <NavSecondary items={filteredNavSecondary} className="mt-auto" />
           </SidebarContent>
         </ScrollArea>
       </div>
