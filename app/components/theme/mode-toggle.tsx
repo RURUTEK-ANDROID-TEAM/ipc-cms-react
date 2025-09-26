@@ -1,4 +1,4 @@
-import { Moon, Sun, Laptop } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "../../hooks/use-theme-provider";
 import {
   DropdownMenuSub,
@@ -18,7 +18,6 @@ export function ModeToggle() {
         {theme === "dark" && <Moon className="mr-2 h-4 w-4" />}
         <span>Theme</span>
       </DropdownMenuSubTrigger>
-
       <DropdownMenuPortal>
         <DropdownMenuSubContent>
           <DropdownMenuItem onClick={() => setTheme("light")}>

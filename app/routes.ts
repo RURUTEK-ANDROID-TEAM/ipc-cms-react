@@ -16,5 +16,6 @@ export default [
     route("groups", "routes/dashboard/pages/groups.tsx"), // "/dashboard/groups"
     route("playback", "routes/dashboard/pages/playback.tsx"), // "/dashboard/playback"
     route("management", "routes/dashboard/pages/management-wrapper.tsx"), // "/dashboard/users"
+    route("test", "routes/dashboard/pages/test.tsx"), // "/dashboard/test"
   ]),
 ] satisfies RouteConfig;

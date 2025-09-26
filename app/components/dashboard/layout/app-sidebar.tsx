@@ -9,6 +9,7 @@ import {
   IconFaceId,
   IconFileAi,
   IconFileDescription,
+  IconFlask,
   IconHelp,
   IconSettings,
   IconTemperatureSun,
@@ -35,6 +36,7 @@ import { useEffect, useState, type ComponentProps } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme-provider";
+import { FlaskConicalIcon } from "lucide-react";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -97,6 +99,12 @@ const data = {
       url: "#",
       icon: IconTimelineEventPlus,
       roles: ["admin", "operator"] as UserRole[],
+    },
+    {
+      title: "Test",
+      url: "/dashboard/test",
+      icon: IconFlask,
+      roles: ["admin", "operator", "viewer"] as UserRole[],
     },
   ],
   navClouds: [
