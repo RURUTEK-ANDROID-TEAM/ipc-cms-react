@@ -2,10 +2,7 @@ import {
   IconCreditCard,
   IconDotsVertical,
   IconLogout,
-  IconMoon,
   IconNotification,
-  IconSun,
-  IconThermometer,
   IconUserCircle,
 } from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,6 +22,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { ModeToggle } from "@/components/theme/mode-toggle";
+import { useNavigate } from "react-router";
 
 interface NavUserProps {
   user: {
@@ -58,6 +56,7 @@ const UserInfo = ({ name, email, avatar, className }: UserInfoProps) => (
 
 export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar();
+  const navigate = useNavigate();
 
   return (
     <SidebarMenu>
@@ -116,7 +115,12 @@ export function NavUser({ user }: NavUserProps) {
             <DropdownMenuSeparator />
 
             {/* Log out */}
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                localStorage.removeItem("accessToken");
+                navigate("/");
+              }}
+            >
               <IconLogout />
               Log out
             </DropdownMenuItem>
