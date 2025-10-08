@@ -13,6 +13,10 @@ import { Checkbox } from "../../ui/checkbox";
 import { Button } from "../../ui/button";
 import { FormActions } from "@/components/ui/form-action-props";
 import axios from "axios";
+import { useNavigate } from "react-router";
+import { jwtDecode } from "jwt-decode";
+import type { DecodedToken } from "@/lib/utils";
+import { Spinner } from "@/components/ui/spinner";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -27,6 +31,8 @@ export const AddDevicesDialog = ({
   open,
   onOpenChange,
 }: AddDevicesDialogProps) => {
+  const navigate = useNavigate();
+
   const [cameras, setCameras] = useState<DeviceType[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<Set<number>>(
     new Set()
@@ -41,14 +47,30 @@ export const AddDevicesDialog = ({
     setLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
+
+      if (token) {
+        const decoded = jwtDecode<DecodedToken>(token);
+        if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+          localStorage.removeItem("accessToken");
+          navigate("/");
+          return;
+        }
+      }
+
       if (!token) throw new Error("No access token found");
 
       const [camerasRes, assignedRes] = await Promise.all([
         axios.get<DeviceType[]>(`${API_URL}/cameras`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
+          },
         }),
         axios.get<DeviceType[]>(`${API_URL}/groups/${group.id}/devices`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
+          },
         }),
       ]);
 
@@ -83,6 +105,16 @@ export const AddDevicesDialog = ({
 
     try {
       const token = localStorage.getItem("accessToken");
+
+      if (token) {
+        const decoded = jwtDecode<DecodedToken>(token);
+        if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+          localStorage.removeItem("accessToken");
+          navigate("/");
+          return;
+        }
+      }
+
       if (!token) throw new Error("No access token found");
 
       const current = Array.from(selectedDevices);
@@ -99,6 +131,7 @@ export const AddDevicesDialog = ({
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
+              "Cache-Control": "no-cache",
             },
             data: { cameraIds: toRemove }, // ✅ axios delete requires "data"
           })
@@ -114,6 +147,7 @@ export const AddDevicesDialog = ({
               headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
+                "Cache-Control": "no-cache",
               },
             }
           )
@@ -136,7 +170,7 @@ export const AddDevicesDialog = ({
     if (loading) {
       return (
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          <Spinner />
         </div>
       );
     }

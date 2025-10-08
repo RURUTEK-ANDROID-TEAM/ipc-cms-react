@@ -4,7 +4,16 @@ import type {
   GroupType,
   UserType,
 } from "@/components/management/schemas/schemas";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
+import type { DecodedToken } from "@/lib/utils";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 import {
   useEffect,
   useRef,
@@ -13,7 +22,7 @@ import {
   type JSX,
   type ReactNode,
 } from "react";
-import { useOutletContext } from "react-router";
+import { useNavigate, useOutletContext } from "react-router";
 import { toast } from "sonner";
 
 const API_URL = "http://172.16.0.157:5000/api";
@@ -37,6 +46,7 @@ const Management: FC<ManagementProps> = ({
   onUpdate,
 }): JSX.Element => {
   const outlet = useOutletContext<OutletHeaderSetter>();
+  const navigate = useNavigate();
   const updateOnlineUIDs = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [users, setUsers] = useState<any[]>([]);
@@ -74,9 +84,22 @@ const Management: FC<ManagementProps> = ({
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("accessToken");
+
+        if (token) {
+          const decoded = jwtDecode<DecodedToken>(token);
+          if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+            localStorage.removeItem("accessToken");
+            navigate("/");
+            return;
+          }
+        }
+
         if (!token) throw new Error("No access token found");
 
-        const headers = { Authorization: `Bearer ${token}` };
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+        };
         const profileResponse = await axios.post<{ roles: string[] }>(
           `${API_URL}/auth/profile`,
           {},
@@ -104,9 +127,22 @@ const Management: FC<ManagementProps> = ({
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("accessToken");
+
+        if (token) {
+          const decoded = jwtDecode<DecodedToken>(token);
+          if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+            localStorage.removeItem("accessToken");
+            navigate("/");
+            return;
+          }
+        }
+
         if (!token) throw new Error("No access token found");
 
-        const headers = { Authorization: `Bearer ${token}` };
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+        };
 
         // Build requests dynamically
         const requests = hideUsersTable
@@ -183,10 +219,15 @@ const Management: FC<ManagementProps> = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <div className="flex flex-col items-center justify-center gap-2">
-          <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin" />
-        </div>
+      <div className="flex items-center justify-center h-screen text-2xl font-bold">
+        <Empty className="w-full h-full items-center">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Spinner />
+            </EmptyMedia>
+            <EmptyTitle>Processing your request</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }
@@ -194,8 +235,21 @@ const Management: FC<ManagementProps> = ({
   async function fetchUsers() {
     try {
       const token = localStorage.getItem("accessToken");
+
+      if (token) {
+        const decoded = jwtDecode<DecodedToken>(token);
+        if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+          localStorage.removeItem("accessToken");
+          navigate("/");
+          return;
+        }
+      }
+
       const res = await axios.get(`${API_URL}/users`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+        },
       });
       setUsers(res.data);
     } catch (error) {
@@ -206,8 +260,21 @@ const Management: FC<ManagementProps> = ({
   async function fetchDevices() {
     try {
       const token = localStorage.getItem("accessToken");
+
+      if (token) {
+        const decoded = jwtDecode<DecodedToken>(token);
+        if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+          localStorage.removeItem("accessToken");
+          navigate("/");
+          return;
+        }
+      }
+
       const res = await axios.get(`${API_URL}/cameras`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+        },
       });
       setDevices(res.data);
     } catch (error) {
@@ -218,8 +285,21 @@ const Management: FC<ManagementProps> = ({
   async function fetchGroups() {
     try {
       const token = localStorage.getItem("accessToken");
+
+      if (token) {
+        const decoded = jwtDecode<DecodedToken>(token);
+        if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+          localStorage.removeItem("accessToken");
+          navigate("/");
+          return;
+        }
+      }
+
       const res = await axios.get(`${API_URL}/groups`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+        },
       });
       setGroups(res.data);
     } catch (error) {

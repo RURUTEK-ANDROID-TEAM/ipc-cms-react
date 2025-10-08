@@ -4,7 +4,7 @@ import {
   OperatorUserIcon,
   ViewerUserIcon,
   type IconHandle,
-} from "@/components/ui/user";
+} from "@/components/ui/icons/user";
 import { useRef } from "react";
 
 interface RoleConfig {

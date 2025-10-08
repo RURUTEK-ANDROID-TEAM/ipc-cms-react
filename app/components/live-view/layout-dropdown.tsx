@@ -1,4 +1,4 @@
-import { GalleryHorizontalEnd, ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,6 +6,11 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { SidebarMenuButton } from "../ui/sidebar";
+import { useRef } from "react";
+import {
+  GalleryHorizontalEndIcon,
+  type GalleryHorizontalEndIconHandle,
+} from "../ui/icons/gallery-horizontal-end";
 
 interface LayoutDropdownProps {
   viewLayout: "2x2" | "3x3" | "4x4";
@@ -16,15 +21,22 @@ export function LayoutDropdown({
   viewLayout,
   setViewLayout,
 }: LayoutDropdownProps) {
+  const layoutRef = useRef<GalleryHorizontalEndIconHandle>(null);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           size="lg"
           className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+          onMouseEnter={() => layoutRef.current?.startAnimation()}
+          onMouseLeave={() => layoutRef.current?.stopAnimation()}
         >
           <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-            <GalleryHorizontalEnd className="size-4 dark:text-white" />
+            <GalleryHorizontalEndIcon
+              ref={layoutRef}
+              className="dark:text-white"
+            />
           </div>
           <div className="flex gap-1 leading-none">
             <span className="font-medium">Layout</span>

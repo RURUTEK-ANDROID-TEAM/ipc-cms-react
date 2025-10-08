@@ -33,8 +33,11 @@ import { NavAIFeatures } from "../navigation/nav-ai-features";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useState, type ComponentProps } from "react";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme-provider";
+import { useNavigate } from "react-router";
+import type { DecodedToken } from "@/lib/utils";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -190,14 +193,28 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { theme } = useTheme();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("accessToken");
+
+        if (token) {
+          const decoded = jwtDecode<DecodedToken>(token);
+          if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+            localStorage.removeItem("accessToken");
+            navigate("/");
+            return;
+          }
+        }
+
         if (!token) throw new Error("No access token found");
 
-        const headers = { Authorization: `Bearer ${token}` };
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+        };
         const profileResponse = await axios.post<{ roles: string[] }>(
           `${API_URL}/auth/profile`,
           {},

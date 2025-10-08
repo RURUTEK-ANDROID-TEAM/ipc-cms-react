@@ -67,6 +67,9 @@ import { TableWrapper } from "./table-wrapper";
 import { AddGroupForm } from "../forms/add-group-form";
 import { PaginationControls } from "./pagination-controls";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
+import type { DecodedToken } from "@/lib/utils";
+import { useNavigate } from "react-router";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -96,6 +99,8 @@ export const DataTable = ({
   refreshGroups?: () => Promise<void>;
   onUpdate?: () => void;
 }) => {
+  const navigate = useNavigate();
+
   // State management
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -195,6 +200,16 @@ export const DataTable = ({
   // API Handlers
   const updateUser = async (id: number, updatedData: Partial<UserType>) => {
     const token = localStorage.getItem("accessToken");
+
+    if (token) {
+      const decoded = jwtDecode<DecodedToken>(token);
+      if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+        localStorage.removeItem("accessToken");
+        navigate("/");
+        return;
+      }
+    }
+
     if (!token) throw new Error("No access token found");
 
     try {
@@ -205,6 +220,7 @@ export const DataTable = ({
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
           },
         }
       );
@@ -229,6 +245,16 @@ export const DataTable = ({
 
   const updateDevice = async (id: number, updatedData: Partial<DeviceType>) => {
     const token = localStorage.getItem("accessToken");
+
+    if (token) {
+      const decoded = jwtDecode<DecodedToken>(token);
+      if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+        localStorage.removeItem("accessToken");
+        navigate("/");
+        return;
+      }
+    }
+
     if (!token) throw new Error("No access token found");
 
     try {
@@ -239,6 +265,7 @@ export const DataTable = ({
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
           },
         }
       );
@@ -263,6 +290,16 @@ export const DataTable = ({
 
   const updateGroup = async (id: number, updatedData: Partial<GroupType>) => {
     const token = localStorage.getItem("accessToken");
+
+    if (token) {
+      const decoded = jwtDecode<DecodedToken>(token);
+      if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+        localStorage.removeItem("accessToken");
+        navigate("/");
+        return;
+      }
+    }
+
     if (!token) throw new Error("No access token found");
 
     try {
@@ -273,6 +310,7 @@ export const DataTable = ({
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
           },
         }
       );
@@ -297,12 +335,23 @@ export const DataTable = ({
 
   const deleteUser = async (id: number) => {
     const token = localStorage.getItem("accessToken");
+
+    if (token) {
+      const decoded = jwtDecode<DecodedToken>(token);
+      if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+        localStorage.removeItem("accessToken");
+        navigate("/");
+        return;
+      }
+    }
+
     if (!token) throw new Error("No access token found");
 
     try {
       const res = await axios.delete(`${API_URL}/users/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
         },
       });
 
@@ -326,12 +375,23 @@ export const DataTable = ({
 
   const deleteDevice = async (id: number) => {
     const token = localStorage.getItem("accessToken");
+
+    if (token) {
+      const decoded = jwtDecode<DecodedToken>(token);
+      if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+        localStorage.removeItem("accessToken");
+        navigate("/");
+        return;
+      }
+    }
+
     if (!token) throw new Error("No access token found");
 
     try {
       const res = await axios.delete(`${API_URL}/cameras/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
         },
       });
 
@@ -352,12 +412,23 @@ export const DataTable = ({
 
   const deleteGroup = async (id: number) => {
     const token = localStorage.getItem("accessToken");
+
+    if (token) {
+      const decoded = jwtDecode<DecodedToken>(token);
+      if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+        localStorage.removeItem("accessToken");
+        navigate("/");
+        return;
+      }
+    }
+
     if (!token) throw new Error("No access token found");
 
     try {
       const res = await axios.delete(`${API_URL}/groups/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
         },
       });
 
@@ -745,6 +816,16 @@ export const DataTable = ({
 
       try {
         const token = localStorage.getItem("accessToken");
+
+        if (token) {
+          const decoded = jwtDecode<DecodedToken>(token);
+          if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+            localStorage.removeItem("accessToken");
+            navigate("/");
+            return;
+          }
+        }
+
         if (!token) throw new Error("No access token found.");
 
         const res = await axios.post(
@@ -754,6 +835,7 @@ export const DataTable = ({
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
+              "Cache-Control": "no-cache",
             },
           }
         );
@@ -812,6 +894,16 @@ export const DataTable = ({
 
       try {
         const token = localStorage.getItem("accessToken");
+
+        if (token) {
+          const decoded = jwtDecode<DecodedToken>(token);
+          if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+            localStorage.removeItem("accessToken");
+            navigate("/");
+            return;
+          }
+        }
+
         if (!token) throw new Error("No access token found.");
 
         const body = uid ? { uid } : { mac_address };
@@ -820,6 +912,7 @@ export const DataTable = ({
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
           },
         });
 
@@ -876,6 +969,16 @@ export const DataTable = ({
 
       try {
         const token = localStorage.getItem("accessToken");
+
+        if (token) {
+          const decoded = jwtDecode<DecodedToken>(token);
+          if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+            localStorage.removeItem("accessToken");
+            navigate("/");
+            return;
+          }
+        }
+
         if (!token) throw new Error("No access token found.");
 
         const res = await axios.post(
@@ -885,6 +988,7 @@ export const DataTable = ({
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
+              "Cache-Control": "no-cache",
             },
           }
         );

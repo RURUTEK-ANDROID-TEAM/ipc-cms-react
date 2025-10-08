@@ -1,13 +1,23 @@
+import {
+  RefreshCWIcon,
+  type RefreshCCWIconWIcon,
+} from "@/components/ui/icons/refresh-cw";
 import { CameraGrid } from "@/components/live-view/camera-grid";
 import { LayoutDropdown } from "@/components/live-view/layout-dropdown";
 import type { DeviceType } from "@/components/management/schemas/schemas";
 import { Button } from "@/components/ui/button";
-import { HoverCard, HoverCardContent } from "@/components/ui/hover-card";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWebRTC } from "@/hooks/use-webrtc";
-import { HoverCardTrigger } from "@radix-ui/react-hover-card";
+import type { DecodedToken } from "@/lib/utils";
 import axios from "axios";
-import { RefreshCw } from "lucide-react";
+import { jwtDecode } from "jwt-decode";
 import {
   useCallback,
   useEffect,
@@ -15,7 +25,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useOutletContext } from "react-router";
+import { useNavigate, useOutletContext } from "react-router";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -35,6 +45,8 @@ type Group = {
 
 const Groups = () => {
   const outlet = useOutletContext<OutletHeaderSetter>();
+  const navigate = useNavigate();
+  const iconRef = useRef<RefreshCCWIconWIcon>(null);
 
   const {
     recordingState,
@@ -60,9 +72,22 @@ const Groups = () => {
       setError(null);
 
       const token = localStorage.getItem("accessToken");
+
+      if (token) {
+        const decoded = jwtDecode<DecodedToken>(token);
+        if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+          localStorage.removeItem("accessToken");
+          navigate("/");
+          return;
+        }
+      }
+
       if (!token) throw new Error("No access token found. Please log in.");
 
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Cache-Control": "no-cache",
+      };
 
       // ✅ Fetch groups
       const groupsRes = await axios.get<Group[]>(`${API_URL}/groups`, {
@@ -152,8 +177,10 @@ const Groups = () => {
             onClick={fetchGroups}
             className="bg-primary text-white rounded-full hover:bg-blue-700 transition-colors"
             disabled={loading}
+            onMouseEnter={() => iconRef.current?.startAnimation()}
+            onMouseLeave={() => iconRef.current?.stopAnimation()}
           >
-            <RefreshCw className={loading ? "animate-spin ..." : ""} />
+            <RefreshCWIcon ref={iconRef} />
           </Button>
 
           {signalingState !== "connected" && (
@@ -161,8 +188,10 @@ const Groups = () => {
               onClick={reconnect}
               className="bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
               // disabled={signalingState === "connected"}
+              onMouseEnter={() => iconRef.current?.startAnimation()}
+              onMouseLeave={() => iconRef.current?.stopAnimation()}
             >
-              <RefreshCw className={loading ? "animate-spin ..." : ""} />
+              <RefreshCWIcon ref={iconRef} />
               Signaling ({signalingState})
             </Button>
           )}
@@ -197,9 +226,15 @@ const Groups = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-16 h-16 border-t-4 border-blue-600 rounded-full animate-spin" />
-        <div className="ml-4 text-lg">Loading groups...</div>
+      <div className="flex items-center justify-center h-screen text-2xl font-bold">
+        <Empty className="w-full h-full items-center">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Spinner />
+            </EmptyMedia>
+            <EmptyTitle>Loading Groups</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }
@@ -234,8 +269,10 @@ const Groups = () => {
           <Button
             onClick={fetchGroups}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            onMouseEnter={() => iconRef.current?.startAnimation()}
+            onMouseLeave={() => iconRef.current?.stopAnimation()}
           >
-            <RefreshCw className={loading ? "animate-spin ..." : ""} />
+            <RefreshCWIcon ref={iconRef} />
             Refresh
           </Button>
         </div>

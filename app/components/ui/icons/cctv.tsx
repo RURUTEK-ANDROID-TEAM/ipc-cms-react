@@ -39,7 +39,7 @@ const cctvVariants: Variants = {
 };
 
 const CctvIcon = forwardRef<CctvIconHandle, CctvIconProps>(
-  ({ className, size = 28, ...props }, ref) => {
+  ({ className, size = 30, ...props }, ref) => {
     return (
       <div className={cn(className)} {...props}>
         <svg

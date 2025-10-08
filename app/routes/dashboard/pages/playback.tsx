@@ -27,6 +27,8 @@ import {
 import { useOutletContext, useParams, useNavigate } from "react-router";
 import Hls from "hls.js";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
+import type { DecodedToken } from "@/lib/utils";
 
 type OutletHeaderSetter = {
   setHeader?: (ctx: {
@@ -87,10 +89,23 @@ const Playback = () => {
     const fetchDevices = async () => {
       try {
         const token = localStorage.getItem("accessToken");
+
+        if (token) {
+          const decoded = jwtDecode<DecodedToken>(token);
+          if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+            localStorage.removeItem("accessToken");
+            navigate("/");
+            return;
+          }
+        }
+
         if (!token) throw new Error("No access token found");
 
         const response = await axios.get(`${API_URL}/cameras`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
+          },
           signal: controller.signal, // axios v1+ supports AbortController
         });
 

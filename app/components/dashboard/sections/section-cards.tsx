@@ -1,9 +1,12 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { CctvIcon } from "@/components/ui/cctv";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CctvIcon } from "@/components/ui/icons/cctv";
+import { Spinner } from "@/components/ui/spinner";
+import type { DecodedToken } from "@/lib/utils";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 import { Video, VideoOffIcon } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router";
 
 interface SectionCardsProps {
   refreshKey?: number;
@@ -24,12 +27,26 @@ export function SectionCards({ refreshKey }: SectionCardsProps) {
     offlineCamerasCount: null,
   });
 
+  const navigate = useNavigate();
+
   const fetchCameras = useCallback(async () => {
     try {
       const token = localStorage.getItem("accessToken");
 
+      if (token) {
+        const decoded = jwtDecode<DecodedToken>(token);
+        if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+          localStorage.removeItem("accessToken");
+          navigate("/");
+          return;
+        }
+      }
+
       const res = await axios.get(`${API_URL}/cameras`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+        },
       });
 
       const data = res.data;
@@ -102,14 +119,10 @@ export function SectionCards({ refreshKey }: SectionCardsProps) {
           </CardTitle>
           {/* <Icon className={`h-6 w-6 ${iconColor}`} />
            */}
-          <CctvIcon className={`h-6 w-6 ${iconColor}`} />
+          <CctvIcon className={`h-6 w-6 ${iconColor}`} />{" "}
         </div>
         <CardTitle className="mt-2 text-2xl font-bold tabular-nums @[250px]/card:text-3xl">
-          {count !== null ? (
-            <span>{count}</span>
-          ) : (
-            <Skeleton className="h-8 w-12 rounded-md bg-gray-200 dark:bg-gray-600" />
-          )}
+          {count !== null ? <span>{count}</span> : <Spinner />}
         </CardTitle>
       </CardHeader>
     </Card>

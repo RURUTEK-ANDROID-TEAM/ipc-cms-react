@@ -1,13 +1,16 @@
-// components/ui/Spinner.tsx
-function Spinner({ size = 12 }: { size?: number }) {
+import { Loader2Icon } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2">
-      <div
-        className={`w-${size} h-${size} border-4 border-primary border-t-transparent rounded-full animate-spin`}
-      />
-      <p className="text-muted-foreground font-medium">Loading...</p>
-    </div>
-  );
+    <Loader2Icon
+      role="status"
+      aria-label="Loading"
+      className={cn("size-4 animate-spin", className)}
+      {...props}
+    />
+  )
 }
 
-export default Spinner;
+export { Spinner }

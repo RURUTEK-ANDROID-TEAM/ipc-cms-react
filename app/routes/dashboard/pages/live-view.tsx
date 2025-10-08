@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { useOutletContext } from "react-router";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { useNavigate, useOutletContext } from "react-router";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { LayoutDropdown } from "@/components/live-view/layout-dropdown";
@@ -7,6 +13,19 @@ import { CameraGrid } from "@/components/live-view/camera-grid";
 import type { DeviceType } from "@/components/management/schemas/schemas";
 import { useWebRTC } from "@/hooks/use-webrtc";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
+import type { DecodedToken } from "@/lib/utils";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  RefreshCWIcon,
+  type RefreshCCWIconWIcon,
+} from "@/components/ui/icons/refresh-cw";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -20,7 +39,11 @@ type OutletHeaderSetter = {
 
 const LiveView = () => {
   const outlet = useOutletContext<OutletHeaderSetter>();
+  const navigate = useNavigate();
   const [viewLayout, setViewLayout] = useState<"2x2" | "3x3" | "4x4">("2x2");
+
+  const cameraRef = useRef<RefreshCCWIconWIcon>(null);
+  const streamsRef = useRef<RefreshCCWIconWIcon>(null);
 
   // Get WebRTC functions (no camera UIDs from here)
   const {
@@ -44,9 +67,22 @@ const LiveView = () => {
       setError(null);
 
       const token = localStorage.getItem("accessToken");
+
+      if (token) {
+        const decoded = jwtDecode<DecodedToken>(token);
+        if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+          localStorage.removeItem("accessToken");
+          navigate("/");
+          return;
+        }
+      }
+
       if (!token) throw new Error("No access token found. Please log in.");
 
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Cache-Control": "no-cache",
+      };
 
       // ✅ Axios handles response parsing automatically
       const res = await axios.get<DeviceType[]>(`${API_URL}/cameras`, {
@@ -108,18 +144,22 @@ const LiveView = () => {
         <>
           <Button
             onClick={fetchCameras}
-            className="bg-primary text-white rounded hover:bg-blue-700 transition-colors"
+            className="bg-primary text-white rounded hover:bg-blue-700 disabled:bg-blue-50 transition-colors"
             disabled={loading}
+            onMouseEnter={() => cameraRef.current?.startAnimation()}
+            onMouseLeave={() => cameraRef.current?.stopAnimation()}
           >
-            <RefreshCw className={loading ? "animate-spin" : ""} />
+            <RefreshCWIcon ref={cameraRef} />
             Cameras
           </Button>
           <Button
             onClick={refreshStreams}
             className="bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
             disabled={cameraUIDs.length === 0}
+            onMouseEnter={() => streamsRef.current?.startAnimation()}
+            onMouseLeave={() => streamsRef.current?.stopAnimation()}
           >
-            <RefreshCw />
+            <RefreshCWIcon ref={streamsRef} />
             Streams
           </Button>
           <LayoutDropdown
@@ -154,9 +194,15 @@ const LiveView = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-16 h-16 border-t-4 border-blue-600 rounded-full animate-spin" />
-        <div className="ml-4 text-lg">Loading cameras...</div>
+      <div className="flex items-center justify-center h-screen text-2xl font-bold">
+        <Empty className="w-full h-full items-center">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Spinner />
+            </EmptyMedia>
+            <EmptyTitle>Loading Cameras</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }

@@ -37,7 +37,12 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
           username,
           password,
         },
-        { headers: { "Content-Type": "application/json" } }
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+          },
+        }
       );
 
       const data = res.data;
