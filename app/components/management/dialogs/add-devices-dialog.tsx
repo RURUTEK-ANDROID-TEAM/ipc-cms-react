@@ -17,6 +17,7 @@ import { useNavigate } from "react-router";
 import { jwtDecode } from "jwt-decode";
 import type { DecodedToken } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
+import { SessionTimeoutDialog } from "@/components/auth/session-timout-dialog";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -39,6 +40,7 @@ export const AddDevicesDialog = ({
   );
   const [prevAssigned, setPrevAssigned] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [showSessionTimeout, setShowSessionTimeout] = useState(false);
 
   // Fetch devices when dialog opens
   const fetchData = useCallback(async () => {
@@ -57,7 +59,10 @@ export const AddDevicesDialog = ({
         }
       }
 
-      if (!token) throw new Error("No access token found");
+      if (!token) {
+        setShowSessionTimeout(true);
+        return;
+      }
 
       const [camerasRes, assignedRes] = await Promise.all([
         axios.get<DeviceType[]>(`${API_URL}/cameras`, {
@@ -115,7 +120,10 @@ export const AddDevicesDialog = ({
         }
       }
 
-      if (!token) throw new Error("No access token found");
+      if (!token) {
+        setShowSessionTimeout(true);
+        return;
+      }
 
       const current = Array.from(selectedDevices);
       const previous = Array.from(prevAssigned);
@@ -213,27 +221,35 @@ export const AddDevicesDialog = ({
   if (!group) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Manage Devices for {group.name}</DialogTitle>
-          <DialogDescription>
-            Select the devices you want to assign to this group.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="max-h-80 overflow-y-auto space-y-2">{deviceList}</div>
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span>{selectedDevices.size} device(s) selected</span>
-          <span>{cameras.length} total devices</span>
-        </div>
-        <DialogFooter>
-          <FormActions
-            loading={loading}
-            onCancel={() => onOpenChange(false)}
-            onSave={handleSave}
-          />
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      {showSessionTimeout && (
+        <SessionTimeoutDialog
+          open={showSessionTimeout}
+          onClose={() => setShowSessionTimeout(false)}
+        />
+      )}
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Manage Devices for {group.name}</DialogTitle>
+            <DialogDescription>
+              Select the devices you want to assign to this group.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-80 overflow-y-auto space-y-2">{deviceList}</div>
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>{selectedDevices.size} device(s) selected</span>
+            <span>{cameras.length} total devices</span>
+          </div>
+          <DialogFooter>
+            <FormActions
+              loading={loading}
+              onCancel={() => onOpenChange(false)}
+              onSave={handleSave}
+            />
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

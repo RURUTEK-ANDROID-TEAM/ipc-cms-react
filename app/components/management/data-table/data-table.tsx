@@ -70,6 +70,7 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import type { DecodedToken } from "@/lib/utils";
 import { useNavigate } from "react-router";
+import { SessionTimeoutDialog } from "@/components/auth/session-timout-dialog";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -144,6 +145,8 @@ export const DataTable = ({
   const [deviceData, setDeviceData] = useState<DeviceType[]>(initDevices);
   const [groupData, setGroupData] = useState<GroupType[]>(initGroups);
 
+  const [showSessionTimeout, setShowSessionTimeout] = useState(false);
+
   // Tab management
   const tabOptions = useMemo(
     () =>
@@ -210,7 +213,10 @@ export const DataTable = ({
       }
     }
 
-    if (!token) throw new Error("No access token found");
+    if (!token) {
+      setShowSessionTimeout(true);
+      return;
+    }
 
     try {
       const res = await axios.put(
@@ -255,7 +261,10 @@ export const DataTable = ({
       }
     }
 
-    if (!token) throw new Error("No access token found");
+    if (!token) {
+      setShowSessionTimeout(true);
+      return;
+    }
 
     try {
       const res = await axios.put(
@@ -300,7 +309,10 @@ export const DataTable = ({
       }
     }
 
-    if (!token) throw new Error("No access token found");
+    if (!token) {
+      setShowSessionTimeout(true);
+      return;
+    }
 
     try {
       const res = await axios.put(
@@ -345,7 +357,10 @@ export const DataTable = ({
       }
     }
 
-    if (!token) throw new Error("No access token found");
+    if (!token) {
+      setShowSessionTimeout(true);
+      return;
+    }
 
     try {
       const res = await axios.delete(`${API_URL}/users/${id}`, {
@@ -385,7 +400,10 @@ export const DataTable = ({
       }
     }
 
-    if (!token) throw new Error("No access token found");
+    if (!token) {
+      setShowSessionTimeout(true);
+      return;
+    }
 
     try {
       const res = await axios.delete(`${API_URL}/cameras/${id}`, {
@@ -422,7 +440,10 @@ export const DataTable = ({
       }
     }
 
-    if (!token) throw new Error("No access token found");
+    if (!token) {
+      setShowSessionTimeout(true);
+      return;
+    }
 
     try {
       const res = await axios.delete(`${API_URL}/groups/${id}`, {
@@ -826,7 +847,10 @@ export const DataTable = ({
           }
         }
 
-        if (!token) throw new Error("No access token found.");
+        if (!token) {
+          setShowSessionTimeout(true);
+          return;
+        }
 
         const res = await axios.post(
           `${API_URL}/users`,
@@ -904,7 +928,10 @@ export const DataTable = ({
           }
         }
 
-        if (!token) throw new Error("No access token found.");
+        if (!token) {
+          setShowSessionTimeout(true);
+          return;
+        }
 
         const body = uid ? { uid } : { mac_address };
 
@@ -979,7 +1006,10 @@ export const DataTable = ({
           }
         }
 
-        if (!token) throw new Error("No access token found.");
+        if (!token) {
+          setShowSessionTimeout(true);
+          return;
+        }
 
         const res = await axios.post(
           `${API_URL}/groups`,
@@ -1063,6 +1093,12 @@ export const DataTable = ({
 
   return (
     <>
+      {showSessionTimeout && (
+        <SessionTimeoutDialog
+          open={showSessionTimeout}
+          onClose={() => setShowSessionTimeout(false)}
+        />
+      )}
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}

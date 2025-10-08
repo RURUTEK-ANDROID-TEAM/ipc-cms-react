@@ -1,3 +1,4 @@
+import { SessionTimeoutDialog } from "@/components/auth/session-timout-dialog";
 import { DataTable } from "@/components/management/data-table/data-table";
 import type {
   DeviceType,
@@ -59,6 +60,8 @@ const Management: FC<ManagementProps> = ({
   const [showAddDevices, setShowAddDevices] = useState(true);
   const [showAddGroups, setShowAddGroups] = useState(true);
 
+  const [showSessionTimeout, setShowSessionTimeout] = useState(false);
+
   useEffect(() => {
     return () => {
       if (hideUsersTable) {
@@ -94,7 +97,10 @@ const Management: FC<ManagementProps> = ({
           }
         }
 
-        if (!token) throw new Error("No access token found");
+        if (!token) {
+          setShowSessionTimeout(true);
+          return;
+        }
 
         const headers = {
           Authorization: `Bearer ${token}`,
@@ -137,7 +143,10 @@ const Management: FC<ManagementProps> = ({
           }
         }
 
-        if (!token) throw new Error("No access token found");
+        if (!token) {
+          setShowSessionTimeout(true);
+          return;
+        }
 
         const headers = {
           Authorization: `Bearer ${token}`,
@@ -308,19 +317,27 @@ const Management: FC<ManagementProps> = ({
   }
 
   return (
-    <DataTable
-      users={users}
-      devices={devices}
-      groups={groups}
-      refreshUsers={fetchUsers}
-      refreshDevices={fetchDevices}
-      refreshGroups={fetchGroups}
-      hideUsersTable={hideUsersTable}
-      showAddUsers={showAddUsers}
-      showAddDevices={showAddDevices}
-      showAddGroups={showAddGroups}
-      onUpdate={onUpdate}
-    />
+    <>
+      {showSessionTimeout && (
+        <SessionTimeoutDialog
+          open={showSessionTimeout}
+          onClose={() => setShowSessionTimeout(false)}
+        />
+      )}
+      <DataTable
+        users={users}
+        devices={devices}
+        groups={groups}
+        refreshUsers={fetchUsers}
+        refreshDevices={fetchDevices}
+        refreshGroups={fetchGroups}
+        hideUsersTable={hideUsersTable}
+        showAddUsers={showAddUsers}
+        showAddDevices={showAddDevices}
+        showAddGroups={showAddGroups}
+        onUpdate={onUpdate}
+      />
+    </>
   );
 };
 

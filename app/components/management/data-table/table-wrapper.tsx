@@ -23,6 +23,13 @@ import {
   TableRow,
 } from "../../ui/table";
 import { DraggableRow } from "./draggable-row";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Table2 } from "lucide-react";
 
 interface TableWrapperProps {
   table: ReturnType<typeof useReactTable<any>>;
@@ -82,7 +89,14 @@ export const TableWrapper = ({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  <Empty>
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <Table2 />
+                      </EmptyMedia>
+                      <EmptyTitle>No Results</EmptyTitle>
+                    </EmptyHeader>
+                  </Empty>
                 </TableCell>
               </TableRow>
             )}

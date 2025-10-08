@@ -26,6 +26,7 @@ import {
   RefreshCWIcon,
   type RefreshCCWIconWIcon,
 } from "@/components/ui/icons/refresh-cw";
+import { SessionTimeoutDialog } from "@/components/auth/session-timout-dialog";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -60,6 +61,8 @@ const LiveView = () => {
   const [error, setError] = useState<string | null>(null);
   const [cameras, setCameras] = useState<DeviceType[]>([]);
 
+  const [showSessionTimeout, setShowSessionTimeout] = useState(false);
+
   // Fetch cameras from external API
   const fetchCameras = useCallback(async () => {
     try {
@@ -77,7 +80,10 @@ const LiveView = () => {
         }
       }
 
-      if (!token) throw new Error("No access token found. Please log in.");
+      if (!token) {
+        setShowSessionTimeout(true);
+        return;
+      }
 
       const headers = {
         Authorization: `Bearer ${token}`,
@@ -246,12 +252,20 @@ const LiveView = () => {
   }
 
   return (
-    <CameraGrid
-      cameraUIDs={cameraUIDs}
-      recordingState={recordingState}
-      toggleRecording={toggleRecording}
-      viewLayout={viewLayout}
-    />
+    <>
+      {showSessionTimeout && (
+        <SessionTimeoutDialog
+          open={showSessionTimeout}
+          onClose={() => setShowSessionTimeout(false)}
+        />
+      )}
+      <CameraGrid
+        cameraUIDs={cameraUIDs}
+        recordingState={recordingState}
+        toggleRecording={toggleRecording}
+        viewLayout={viewLayout}
+      />
+    </>
   );
 };
 

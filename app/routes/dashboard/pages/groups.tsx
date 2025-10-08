@@ -26,6 +26,7 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate, useOutletContext } from "react-router";
+import { SessionTimeoutDialog } from "@/components/auth/session-timout-dialog";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -65,6 +66,7 @@ const Groups = () => {
     Record<string | number, DeviceType[]>
   >({});
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
+  const [showSessionTimeout, setShowSessionTimeout] = useState(false);
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -82,7 +84,10 @@ const Groups = () => {
         }
       }
 
-      if (!token) throw new Error("No access token found. Please log in.");
+      if (!token) {
+        setShowSessionTimeout(true);
+        return;
+      }
 
       const headers = {
         Authorization: `Bearer ${token}`,
@@ -281,31 +286,39 @@ const Groups = () => {
   }
 
   return (
-    <div className="flex flex-col px-4 md:gap-6 md:px-4">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap">
-          {groups.map((group) => (
-            <TabsTrigger key={group.id} value={group.id.toString()}>
-              {group.name}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {groups.map((group) => {
-          const devices = devicesByGroup[group.id] || [];
-          const cameraUIDs = devices.map((cam) => cam.uid);
-          return (
-            <TabsContent key={group.id} value={group.id.toString()}>
-              <CameraGrid
-                cameraUIDs={cameraUIDs}
-                recordingState={recordingState}
-                toggleRecording={toggleRecording}
-                viewLayout={viewLayout}
-              />
-            </TabsContent>
-          );
-        })}
-      </Tabs>
-    </div>
+    <>
+      {showSessionTimeout && (
+        <SessionTimeoutDialog
+          open={showSessionTimeout}
+          onClose={() => setShowSessionTimeout(false)}
+        />
+      )}
+      <div className="flex flex-col px-4 md:gap-6 md:px-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="flex flex-wrap">
+            {groups.map((group) => (
+              <TabsTrigger key={group.id} value={group.id.toString()}>
+                {group.name}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {groups.map((group) => {
+            const devices = devicesByGroup[group.id] || [];
+            const cameraUIDs = devices.map((cam) => cam.uid);
+            return (
+              <TabsContent key={group.id} value={group.id.toString()}>
+                <CameraGrid
+                  cameraUIDs={cameraUIDs}
+                  recordingState={recordingState}
+                  toggleRecording={toggleRecording}
+                  viewLayout={viewLayout}
+                />
+              </TabsContent>
+            );
+          })}
+        </Tabs>
+      </div>
+    </>
   );
 };
 

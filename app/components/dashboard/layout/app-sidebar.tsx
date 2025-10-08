@@ -38,6 +38,7 @@ import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme-provider";
 import { useNavigate } from "react-router";
 import type { DecodedToken } from "@/lib/utils";
+import { SessionTimeoutDialog } from "@/components/auth/session-timout-dialog";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -192,6 +193,8 @@ const data = {
 export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSessionTimeout, setShowSessionTimeout] = useState(false);
+
   const { theme } = useTheme();
   const navigate = useNavigate();
 
@@ -209,17 +212,22 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
           }
         }
 
-        if (!token) throw new Error("No access token found");
+        if (!token) {
+          setShowSessionTimeout(true);
+          return;
+        }
 
         const headers = {
           Authorization: `Bearer ${token}`,
           "Cache-Control": "no-cache",
         };
+
         const profileResponse = await axios.post<{ roles: string[] }>(
           `${API_URL}/auth/profile`,
           {},
           { headers }
         );
+
         const role = profileResponse.data.roles[0] as UserRole;
 
         setUserRole(role);
@@ -253,53 +261,61 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   }
 
   return (
-    <Sidebar
-      collapsible="offcanvas"
-      {...props}
-      className="h-screen flex flex-col"
-    >
-      {/* Fixed header */}
-      <SidebarHeader className="flex-shrink-0">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-2"
-            >
-              <a href="/dashboard">
-                <img
-                  src={
-                    theme === "dark"
-                      ? "/rurutek_logo_dark.png"
-                      : "/rurutek_logo.png"
-                  }
-                  alt="Rurutek Logo"
-                  className="w-8 h-auto mb-2 mt-2"
-                />
-                <span className="text-base font-semibold">
-                  Ruru Tek Private Limited
-                </span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+    <>
+      <Sidebar
+        collapsible="offcanvas"
+        {...props}
+        className="h-screen flex flex-col"
+      >
+        {/* Fixed header */}
+        <SidebarHeader className="flex-shrink-0">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                className="data-[slot=sidebar-menu-button]:!p-2"
+              >
+                <a href="/dashboard">
+                  <img
+                    src={
+                      theme === "dark"
+                        ? "/rurutek_logo_dark.png"
+                        : "/rurutek_logo.png"
+                    }
+                    alt="Rurutek Logo"
+                    className="w-8 h-auto mb-2 mt-2"
+                  />
+                  <span className="text-base font-semibold">
+                    Ruru Tek Private Limited
+                  </span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
 
-      {/* Scrollable middle content */}
-      <div className="flex-1 min-h-0">
-        <ScrollArea className="h-full">
-          <SidebarContent className="px-0">
-            <NavMain items={filteredNavMain} />
-            <NavAIFeatures items={filteredDocuments} />
-            <NavSecondary items={filteredNavSecondary} className="mt-auto" />
-          </SidebarContent>
-        </ScrollArea>
-      </div>
+        {/* Scrollable middle content */}
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full">
+            <SidebarContent className="px-0">
+              <NavMain items={filteredNavMain} />
+              <NavAIFeatures items={filteredDocuments} />
+              <NavSecondary items={filteredNavSecondary} className="mt-auto" />
+            </SidebarContent>
+          </ScrollArea>
+        </div>
 
-      {/* Fixed footer */}
-      <SidebarFooter className="flex-shrink-0">
-        <NavUser user={data.user} />
-      </SidebarFooter>
-    </Sidebar>
+        {/* Fixed footer */}
+        <SidebarFooter className="flex-shrink-0">
+          <NavUser user={data.user} />
+        </SidebarFooter>
+      </Sidebar>
+      {showSessionTimeout && (
+        <SessionTimeoutDialog
+          open={showSessionTimeout}
+          onClose={() => setShowSessionTimeout(false)}
+        />
+      )}
+    </>
   );
 }
