@@ -1,4 +1,4 @@
-import { SessionTimeoutDialog } from "@/components/auth/session-timout-dialog";
+import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
 import { DataTable } from "@/components/management/data-table/data-table";
 import type {
   DeviceType,

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+
 import {
   Dialog,
   DialogContent,
@@ -7,8 +8,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../ui/dialog";
-import { Button } from "../ui/button";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface SessionTimeoutDialogProps {
   open: boolean;

@@ -1,4 +1,4 @@
-import { LoginForm } from "@/components/auth/login-form";
+import { LoginForm } from "@/components/auth/forms/login-form";
 import { useTheme } from "@/hooks/use-theme-provider";
 
 const Login = () => {

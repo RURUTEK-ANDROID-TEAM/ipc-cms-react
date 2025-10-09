@@ -38,7 +38,7 @@ import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme-provider";
 import { useNavigate } from "react-router";
 import type { DecodedToken } from "@/lib/utils";
-import { SessionTimeoutDialog } from "@/components/auth/session-timout-dialog";
+import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
 
 const API_URL = "http://172.16.0.157:5000/api";
 

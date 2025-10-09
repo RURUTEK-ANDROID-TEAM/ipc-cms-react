@@ -17,7 +17,7 @@ import { useNavigate } from "react-router";
 import { jwtDecode } from "jwt-decode";
 import type { DecodedToken } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
-import { SessionTimeoutDialog } from "@/components/auth/session-timout-dialog";
+import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
 
 const API_URL = "http://172.16.0.157:5000/api";
 

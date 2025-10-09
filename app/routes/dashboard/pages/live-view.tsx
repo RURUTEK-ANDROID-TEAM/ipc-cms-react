@@ -26,7 +26,7 @@ import {
   RefreshCWIcon,
   type RefreshCCWIconWIcon,
 } from "@/components/ui/icons/refresh-cw";
-import { SessionTimeoutDialog } from "@/components/auth/session-timout-dialog";
+import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
 
 const API_URL = "http://172.16.0.157:5000/api";
 

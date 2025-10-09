@@ -8,6 +8,8 @@ import type { DeviceType } from "@/components/management/schemas/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
+  EmptyContent,
+  EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
@@ -26,7 +28,10 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate, useOutletContext } from "react-router";
-import { SessionTimeoutDialog } from "@/components/auth/session-timout-dialog";
+import { Group } from "lucide-react";
+import { AddGroupForm } from "@/components/management/forms/add-group-form";
+import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
+import { CreateGroupDialog } from "@/components/groups/create-group-dialog";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -265,22 +270,24 @@ const Groups = () => {
   // No groups found
   if (groups.length === 0) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <div className="text-gray-500 text-lg mb-2">No groups found</div>
-          <div className="text-gray-400 text-sm mb-4">
-            Create your first group to get started
-          </div>
-          <Button
-            onClick={fetchGroups}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            onMouseEnter={() => iconRef.current?.startAnimation()}
-            onMouseLeave={() => iconRef.current?.stopAnimation()}
-          >
-            <RefreshCWIcon ref={iconRef} />
-            Refresh
-          </Button>
-        </div>
+      <div className="flex items-center justify-center h-screen">
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Group />
+            </EmptyMedia>
+            <EmptyTitle>No Groups</EmptyTitle>
+            <EmptyDescription>
+              You haven&apos;t created any groups yet. Get started by creating
+              your first group.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <div className="flex">
+              <CreateGroupDialog />
+            </div>
+          </EmptyContent>
+        </Empty>
       </div>
     );
   }
