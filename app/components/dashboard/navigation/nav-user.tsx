@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ModeToggle } from "@/components/theme/mode-toggle";
 import { useNavigate } from "react-router";
+import { BellRing, CircleUser, CreditCard, LogOut } from "lucide-react";
 
 interface NavUserProps {
   user: {
@@ -97,15 +98,15 @@ export function NavUser({ user }: NavUserProps) {
             {/* Main group */}
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <IconUserCircle />
+                <CircleUser />
                 Account
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <IconCreditCard />
+                <CreditCard />
                 Billing
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <IconNotification />
+                <BellRing />
                 Notifications
               </DropdownMenuItem>
 
@@ -121,7 +122,7 @@ export function NavUser({ user }: NavUserProps) {
                 navigate("/");
               }}
             >
-              <IconLogout />
+              <LogOut />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

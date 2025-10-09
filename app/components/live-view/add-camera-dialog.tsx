@@ -1,18 +1,18 @@
 import { useCallback, useState, type FormEvent } from "react";
-import { AddGroupForm } from "@/components/management/forms/add-group-form";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Group } from "lucide-react";
+import { Video } from "lucide-react";
 import { toast } from "sonner";
 import { jwtDecode } from "jwt-decode";
 import type { DecodedToken } from "@/lib/utils";
 import { useNavigate } from "react-router";
 import axios from "axios";
 import { SessionTimeoutDialog } from "../auth/dialogs/session-timout-dialog";
+import { AddDeviceForm } from "../management/forms/add-device-form";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
-export const CreateGroupDialog = () => {
+export const AddCameraDialog = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,17 +20,19 @@ export const CreateGroupDialog = () => {
   const navigate = useNavigate();
   const [showSessionTimeout, setShowSessionTimeout] = useState(false);
 
-  const handleAddGroup = useCallback(async (e: FormEvent<HTMLFormElement>) => {
+  const handleAddDevice = useCallback(async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const name = formData.get("name")?.toString().trim();
-    const description = formData.get("description")?.toString().trim();
+    const uid = formData.get("uid")?.toString().trim();
+    const mac_address = formData.get("mac_address")?.toString().trim();
 
-    if (!name || !description) {
-      toast.error("Please fill in all fields");
+    if (!uid && !mac_address) {
+      toast.error(
+        "Please provide at least one identifier (UID or MAC Address)"
+      );
       setLoading(false);
       return;
     }
@@ -52,23 +54,21 @@ export const CreateGroupDialog = () => {
         return;
       }
 
-      const res = await axios.post(
-        `${API_URL}/groups`,
-        { name, description },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            "Cache-Control": "no-cache",
-          },
-        }
-      );
+      const body = uid ? { uid } : { mac_address };
+
+      const res = await axios.post(`${API_URL}/cameras`, body, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+        },
+      });
 
       // Reset state
       setError(null);
       setOpen(false);
 
-      toast.success("Group added successfully");
+      toast.success("Camera assigned successfully");
       window.location.reload();
 
       return res.data;
@@ -77,13 +77,13 @@ export const CreateGroupDialog = () => {
         console.error("API Error:", error.response?.data || error.message);
         const errorMessage =
           error.response?.data?.message ||
-          `Failed to add group: ${error.response?.status}`;
+          `Failed to add device: ${error.response?.status}`;
         setError(errorMessage);
         toast.error(errorMessage);
         throw new Error(errorMessage);
       } else {
         console.error("Unexpected Error:", error);
-        const errorMessage = "Unexpected error while adding group";
+        const errorMessage = "Unexpected error while adding camera";
         setError(errorMessage);
         toast.error(errorMessage);
         throw new Error(errorMessage);
@@ -98,12 +98,12 @@ export const CreateGroupDialog = () => {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button className="dark:text-white">
-            <Group /> Create Group
+            <Video /> Add Device
           </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
-          <AddGroupForm
-            onSubmit={handleAddGroup}
+          <AddDeviceForm
+            onSubmit={handleAddDevice}
             loading={loading}
             error={error}
           />

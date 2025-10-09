@@ -1,5 +1,3 @@
-import { type Icon } from "@tabler/icons-react";
-
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -15,7 +13,7 @@ export function NavAIFeatures({
   items: {
     name: string;
     url: string;
-    icon: Icon;
+    icon: any;
   }[];
 }) {
   const { isMobile } = useSidebar();

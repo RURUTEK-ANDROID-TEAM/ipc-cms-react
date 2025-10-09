@@ -1,21 +1,7 @@
 import {
-  IconAdjustments,
-  IconArrowBackUp,
-  IconCalendarClock,
-  IconCamera,
-  IconCar,
-  IconCardsFilled,
-  IconDashboard,
-  IconFaceId,
   IconFileAi,
   IconFileDescription,
-  IconHelp,
-  IconSettings,
-  IconTemperatureSun,
   IconTimelineEventPlus,
-  IconUsers,
-  IconVideo,
-  type Icon as TablerIcon,
 } from "@tabler/icons-react";
 import {
   Sidebar,
@@ -39,25 +25,26 @@ import { useTheme } from "@/hooks/use-theme-provider";
 import { useNavigate } from "react-router";
 import type { DecodedToken } from "@/lib/utils";
 import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
+import {
+  Camera,
+  CarFront,
+  Cog,
+  Group,
+  LayoutDashboard,
+  ListVideo,
+  MessageCircleQuestionMark,
+  PersonStanding,
+  ScanFace,
+  SlidersVertical,
+  ThermometerSun,
+  Timer,
+  Users,
+  Video,
+} from "lucide-react";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
 type UserRole = "admin" | "operator" | "viewer" | null;
-
-// Navigation item interfaces with role-based visibility
-interface NavItem {
-  title: string;
-  url: string;
-  icon: TablerIcon;
-  roles?: UserRole[];
-}
-
-interface DocumentItem {
-  name: string;
-  url: string;
-  icon: TablerIcon;
-  roles?: UserRole[];
-}
 
 const data = {
   user: {
@@ -69,31 +56,31 @@ const data = {
     {
       title: "Dashboard",
       url: "/dashboard",
-      icon: IconDashboard,
+      icon: LayoutDashboard,
       roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       title: "Live View",
       url: "/dashboard/live-view",
-      icon: IconVideo,
+      icon: Video,
       roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       title: "Groups",
       url: "/dashboard/groups",
-      icon: IconCardsFilled,
+      icon: Group,
       roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       title: "Playback",
       url: "/dashboard/playback",
-      icon: IconArrowBackUp,
+      icon: ListVideo,
       roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       title: "Management",
       url: "/dashboard/management",
-      icon: IconAdjustments,
+      icon: SlidersVertical,
       roles: ["admin"] as UserRole[],
     },
     {
@@ -106,7 +93,7 @@ const data = {
   navClouds: [
     {
       title: "Capture",
-      icon: IconCamera,
+      icon: Camera,
       isActive: true,
       url: "#",
       items: [
@@ -140,13 +127,13 @@ const data = {
     {
       title: "Settings",
       url: "#",
-      icon: IconSettings,
+      icon: Cog,
       roles: ["admin"] as UserRole[],
     },
     {
       title: "Get Help",
       url: "#",
-      icon: IconHelp,
+      icon: MessageCircleQuestionMark,
       roles: ["admin", "operator", "viewer"] as UserRole[],
     },
   ],
@@ -154,37 +141,37 @@ const data = {
     {
       name: "Faces",
       url: "#",
-      icon: IconFaceId,
+      icon: ScanFace,
       roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       name: "Heat Maps",
       url: "#",
-      icon: IconTemperatureSun,
+      icon: ThermometerSun,
       roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       name: "People",
       url: "#",
-      icon: IconUsers,
+      icon: PersonStanding,
       roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       name: "Visitors",
       url: "#",
-      icon: IconUsers,
+      icon: Users,
       roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       name: "ANPR",
       url: "#",
-      icon: IconCar,
+      icon: CarFront,
       roles: ["admin", "operator", "viewer"] as UserRole[],
     },
     {
       name: "Timelapse",
       url: "#",
-      icon: IconCalendarClock,
+      icon: Timer,
       roles: ["admin", "operator", "viewer"] as UserRole[],
     },
   ],

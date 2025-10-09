@@ -7,7 +7,7 @@ import {
 } from "react";
 import { useNavigate, useOutletContext } from "react-router";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { Video } from "lucide-react";
 import { LayoutDropdown } from "@/components/live-view/layout-dropdown";
 import { CameraGrid } from "@/components/live-view/camera-grid";
 import type { DeviceType } from "@/components/management/schemas/schemas";
@@ -17,6 +17,8 @@ import { jwtDecode } from "jwt-decode";
 import type { DecodedToken } from "@/lib/utils";
 import {
   Empty,
+  EmptyContent,
+  EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
@@ -27,6 +29,7 @@ import {
   type RefreshCCWIconWIcon,
 } from "@/components/ui/icons/refresh-cw";
 import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
+import { AddCameraDialog } from "@/components/live-view/add-camera-dialog";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -234,19 +237,24 @@ const LiveView = () => {
   // No cameras found
   if (cameraUIDs.length === 0) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <div className="text-gray-500 text-lg mb-2">No cameras found</div>
-          <div className="text-gray-400 text-sm mb-4">
-            Make sure cameras are connected and configured properly
-          </div>
-          <button
-            onClick={fetchCameras}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-          >
-            Refresh Cameras
-          </button>
-        </div>
+      <div className="flex items-center justify-center h-screen">
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Video />
+            </EmptyMedia>
+            <EmptyTitle>No Cameras</EmptyTitle>
+            <EmptyDescription>
+              You haven&apos;t added any cameras yet. Get started by adding your
+              first camera.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <div className="flex">
+              <AddCameraDialog />
+            </div>
+          </EmptyContent>
+        </Empty>
       </div>
     );
   }

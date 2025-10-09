@@ -1,5 +1,3 @@
-import { type Icon } from "@tabler/icons-react";
-
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -12,7 +10,7 @@ import { NavLink, useLocation } from "react-router";
 interface NavItem {
   title: string;
   url: string;
-  icon: Icon;
+  icon: any;
 }
 
 interface NavMainProps {
