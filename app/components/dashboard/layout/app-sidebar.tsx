@@ -126,7 +126,7 @@ const data = {
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/dashboard/settings",
       icon: Cog,
       roles: ["admin"] as UserRole[],
     },

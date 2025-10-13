@@ -28,12 +28,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useOutletContext, useParams, useNavigate } from "react-router";
+import { useOutletContext, useNavigate, useParams } from "react-router";
 import Hls from "hls.js";
 import axios from "axios";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { jwtDecode } from "jwt-decode";
 import type { DecodedToken } from "@/lib/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
 
 type OutletHeaderSetter = {
   setHeader?: (ctx: {
@@ -42,26 +43,36 @@ type OutletHeaderSetter = {
     breadcrumb?: { title: string; path: string }[];
   }) => void;
 };
-type Recording = {
+
+export type Recording = {
   id: number;
+  recording_id: string;
+  camera_id: number;
+  uid: string;
   start: string;
   end: string;
   url: string;
   title?: string;
 };
 
+interface Device {
+  uid: string;
+  name: string;
+}
+
 const API_URL = "http://172.16.0.157:5000/api";
 const RECORD_API_URL = `${API_URL}/recording/record`;
+const CAMERA_API_URL = `${API_URL}/cameras`;
 
 const Playback = () => {
   const outlet = useOutletContext<OutletHeaderSetter>();
-  const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
+  const { uid: urlUid } = useParams<{ uid?: string }>(); // Extract UID from URL
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
-  const [devices, setDevices] = useState<{ uid: string; name: string }[]>([]);
-  const [selectedUid, setSelectedUid] = useState<string | null>(null);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [selectedUid, setSelectedUid] = useState<string | null>(urlUid || null);
   const [deviceOpen, setDeviceOpen] = useState(false);
 
   const [open, setOpen] = useState(false);
@@ -76,15 +87,22 @@ const Playback = () => {
     null
   );
   const [retryCount, setRetryCount] = useState(0);
+  const [showSessionTimeout, setShowSessionTimeout] = useState(false);
+
+  // --- SYNC URL UID WITH STATE ---
+  useEffect(() => {
+    if (urlUid && urlUid !== selectedUid) {
+      setSelectedUid(urlUid);
+    }
+  }, [urlUid]);
 
   // --- HEADER ---
   useEffect(() => {
     outlet?.setHeader?.({
       title: "Playback",
-      actions: null,
       breadcrumb: [
         { title: "Dashboard", path: "/dashboard" },
-        { title: "Playback", path: "dashboard/playback" },
+        { title: "Playback", path: "/dashboard/playback" },
       ],
     });
   }, []);
@@ -120,65 +138,76 @@ const Playback = () => {
         hls.loadSource(url);
         hls.attachMedia(video);
 
-        hls.on(Hls.Events.MANIFEST_PARSED, () =>
-          console.log("HLS manifest parsed")
-        );
+        hls.on(Hls.Events.MANIFEST_PARSED, () => setVideoLoading(false));
 
         hls.on(Hls.Events.ERROR, (event, data) => {
           console.error("HLS error:", data);
-          // if (data.fatal) setError(`Video playback error: ${data.details}`);
           if (data.fatal) {
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
-                console.error("Network error encountered");
                 if (retryCount < 3) {
                   setTimeout(
                     () => {
-                      console.log("Attempting to recover from network error");
                       hls.startLoad();
-                      setRetryCount((prev) => prev + 1);
+                      setRetryCount((p) => p + 1);
                     },
                     1000 * (retryCount + 1)
                   );
                 } else {
-                  setError(
-                    "Network error: Unable to load video after multiple attempts"
-                  );
+                  setError("Network error: unable to load video after retries");
                   setVideoLoading(false);
                 }
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
-                console.error("Media error encountered, trying to recover");
                 hls.recoverMediaError();
                 break;
               default:
-                setError(`Video playback error: ${data.details}`);
+                setError(`Playback error: ${data.details}`);
                 setVideoLoading(false);
                 cleanupHls();
-                break;
             }
-          } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            video.src = url;
-            video.addEventListener(
-              "loadeddata",
-              () => {
-                setVideoLoading(false);
-              },
-              { once: true }
-            );
-          } else {
-            setError("HLS video playback is not supported in this browser");
-            setVideoLoading(false);
           }
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
         video.src = url;
       } else {
-        setError("HLS not supported");
+        setError("HLS not supported in this browser");
       }
     },
     [cleanupHls, retryCount]
   );
+
+  // --- FETCH CAMERAS ---
+  const fetchCameras = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      if (!token) {
+        setShowSessionTimeout(true);
+        return;
+      }
+
+      const decoded = jwtDecode<DecodedToken>(token);
+      if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+        localStorage.removeItem("accessToken");
+        setShowSessionTimeout(true);
+        return;
+      }
+
+      const res = await axios.get(CAMERA_API_URL, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setDevices(res.data);
+    } catch (err) {
+      console.error("Failed to fetch cameras:", err);
+      setDevices([]);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    fetchCameras();
+  }, [fetchCameras]);
 
   // --- FETCH RECORDINGS ---
   useEffect(() => {
@@ -194,39 +223,30 @@ const Playback = () => {
         const dateStr = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
         const response = await axios.get(RECORD_API_URL, {
-          params: {
-            uid: selectedUid,
-            startdate: dateStr,
-          },
+          params: { uid: selectedUid, startdate: dateStr },
           signal: controller.signal,
         });
 
-        const data = response.data;
-        const mapped: Recording[] = data
-          .filter((r: any) => {
-            if (!r.start || !r.end || !r.url) return false;
-            const startDate = new Date(r.start);
-            const endDate = new Date(r.end);
-            return (
-              !isNaN(startDate.getTime()) &&
-              !isNaN(endDate.getTime()) &&
-              startDate < endDate
-            );
-          })
+        const rawData = response.data.data || response.data;
+
+        const mapped: Recording[] = rawData
+          .filter((r: any) => r.start && r.end && r.url)
           .map((r: any, i: number) => ({
-            id: r.id || `recording-${i}`,
+            id: r.id || i + 1, // Use numeric ID from API
+            recording_id: r.recording_id || `recording-${i}`,
             start: r.start,
             end: r.end,
-            url: r.url,
+            url: r.url.startsWith("http") ? r.url : `${API_URL}${r.url}`,
             title: r.title || `Recording ${i + 1}`,
           }));
 
+        console.log(`Mapped: ${mapped}`);
+        //
         setRecordings(mapped);
         if (mapped.length === 0) setError(`No recordings for ${dateStr}`);
       } catch (err: any) {
-        if (!axios.isCancel(err)) {
+        if (!axios.isCancel(err))
           setError(`Failed to fetch recordings: ${err.message}`);
-        }
       } finally {
         setLoading(false);
       }
@@ -236,7 +256,7 @@ const Playback = () => {
     return () => controller.abort();
   }, [selectedUid, date]);
 
-  // --- SELECT RECORDING FROM TIMELINE ---
+  // --- SELECT RECORDING ---
   const handleTimelineSelect = useCallback(
     (recording: Recording, seekSeconds: number) => {
       const video = videoRef.current;
@@ -248,23 +268,15 @@ const Playback = () => {
         setSelectedUrl(recording.url);
         initHls(recording.url);
 
-        // Wait for video to load before seeking
-        const handleLoadedData = () => {
+        const handleLoaded = () => {
           video.currentTime = seekSeconds;
-          video.play().catch((err) => {
-            console.error("Playback error:", err);
-            setError("Failed to start video playback");
-          });
-          video.removeEventListener("loadeddata", handleLoadedData);
+          video.play().catch(() => setError("Failed to start playback"));
+          video.removeEventListener("loadeddata", handleLoaded);
         };
-
-        video.addEventListener("loadeddata", handleLoadedData);
+        video.addEventListener("loadeddata", handleLoaded);
       } else {
         video.currentTime = seekSeconds;
-        video.play().catch((err) => {
-          console.error("Playback error:", err);
-          setError("Failed to start video playback");
-        });
+        video.play().catch(() => setError("Failed to start playback"));
       }
     },
     [selectedUrl, initHls]
@@ -276,10 +288,7 @@ const Playback = () => {
     if (!video) return;
 
     if (video.paused) {
-      video.play().catch((err) => {
-        console.error("Play error:", err);
-        setError("Failed to play video");
-      });
+      video.play().catch(() => setError("Playback failed"));
     } else {
       video.pause();
     }
@@ -297,7 +306,7 @@ const Playback = () => {
     video.currentTime = newTime;
   }, []);
 
-  // --- HANDLE VIDEO END - AUTO PLAY NEXT RECORDING ---
+  // --- AUTO PLAY NEXT ---
   const handleVideoEnded = useCallback(() => {
     if (!activeRecording || recordings.length === 0) return;
 
@@ -305,8 +314,7 @@ const Playback = () => {
       (r) => r.id === activeRecording.id
     );
     if (currentIndex >= 0 && currentIndex < recordings.length - 1) {
-      const nextRecording = recordings[currentIndex + 1];
-      handleTimelineSelect(nextRecording, 0);
+      handleTimelineSelect(recordings[currentIndex + 1], 0);
     }
   }, [activeRecording, recordings, handleTimelineSelect]);
 
@@ -321,11 +329,7 @@ const Playback = () => {
       setIsPlaying(false);
       handleVideoEnded();
     };
-    const onError = (e: Event) => {
-      console.error("Video element error:", e);
-      setError("Video playback error occurred");
-      setVideoLoading(false);
-    };
+    const onError = () => setError("Video playback error");
     const onWaiting = () => setVideoLoading(true);
     const onCanPlay = () => setVideoLoading(false);
 
@@ -344,9 +348,8 @@ const Playback = () => {
       video.removeEventListener("waiting", onWaiting);
       video.removeEventListener("canplay", onCanPlay);
     };
-  }, []);
+  }, [handleVideoEnded]);
 
-  // --- CLEANUP HLS ON UNMOUNT ---
   useEffect(() => cleanupHls(), [cleanupHls]);
 
   // --- DATE SELECT ---
@@ -356,14 +359,11 @@ const Playback = () => {
       setDate(newDate);
       setOpen(false);
 
-      // Reset video state
-      if (videoRef.current) {
-        cleanupHls();
-        videoRef.current.src = "";
-        setSelectedUrl(null);
-        setActiveRecording(null);
-        setIsPlaying(false);
-      }
+      cleanupHls();
+      if (videoRef.current) videoRef.current.src = "";
+      setSelectedUrl(null);
+      setActiveRecording(null);
+      setIsPlaying(false);
     },
     [cleanupHls]
   );
@@ -373,19 +373,16 @@ const Playback = () => {
     (uid: string) => {
       setSelectedUid(uid);
       setDeviceOpen(false);
-      navigate(`/dashboard/playback/${uid}`);
+      navigate(`/dashboard/playback?uid=${uid}`);
 
-      // Reset state for new device
+      cleanupHls();
+      if (videoRef.current) videoRef.current.src = "";
+
       setRecordings([]);
       setSelectedUrl(null);
       setActiveRecording(null);
       setError(null);
       setIsPlaying(false);
-
-      if (videoRef.current) {
-        cleanupHls();
-        videoRef.current.src = "";
-      }
     },
     [cleanupHls, navigate]
   );
@@ -394,9 +391,12 @@ const Playback = () => {
   minDate.setDate(minDate.getDate() - 7);
   const maxDate = new Date();
 
+  // Get selected device name for display
+  const selectedDevice = devices.find((d) => d.uid === selectedUid);
+
   return (
     <div className="ml-4 mr-4 space-y-4">
-      <AspectRatio ratio={16 / 9} className="rounded-lg bg-black">
+      <AspectRatio ratio={16 / 9} className="rounded-lg bg-black relative">
         <video
           ref={videoRef}
           className="w-full h-full rounded-lg"
@@ -414,7 +414,7 @@ const Playback = () => {
           <div className="absolute inset-0 flex items-center justify-center text-white/70">
             <div className="text-center">
               <Play className="h-16 w-16 mx-auto mb-2 opacity-50" />
-              <p>Select a date and click on the timeline to start playback</p>
+              <p>Select a camera and date to view recordings</p>
             </div>
           </div>
         )}
@@ -467,6 +467,7 @@ const Playback = () => {
           <SkipForwardIcon className="h-5 w-5" />
         </Button>
       </div>
+
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -474,27 +475,25 @@ const Playback = () => {
         </Alert>
       )}
 
-      {/* Date + Device + Current Recording */}
+      {/* Camera Picker & Date */}
       <div className="flex flex-wrap gap-4">
         {/* Device Picker */}
         <div className="flex flex-col gap-3">
-          <Label htmlFor="device-picker" className="px-1">
-            Camera
-          </Label>
+          <Label>Camera</Label>
           <Popover open={deviceOpen} onOpenChange={setDeviceOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                id="device-picker"
-                className="w-48 justify-between font-normal"
+                className="w-48 justify-between"
                 disabled={loading || devices.length === 0}
               >
-                {selectedUid
-                  ? devices.find((d) => d.uid === selectedUid)?.name ||
-                    `UID: ${selectedUid.substring(0, 8)}...`
-                  : devices.length === 0
-                    ? "No cameras available"
-                    : "Select camera"}{" "}
+                {selectedDevice
+                  ? selectedDevice.uid
+                  : selectedUid
+                    ? `UID: ${selectedUid.substring(0, 8)}...`
+                    : devices.length === 0
+                      ? "No cameras available"
+                      : "Select camera"}
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
@@ -507,7 +506,10 @@ const Playback = () => {
                     onClick={() => handleDeviceSelect(d.uid)}
                     className="justify-start"
                   >
-                    {d.name}
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">{d.name}</span>
+                      <span className="text-medium">{d.uid}</span>
+                    </div>
                   </Button>
                 ))}
               </div>
@@ -517,14 +519,11 @@ const Playback = () => {
 
         {/* Date Picker */}
         <div className="flex flex-col gap-3">
-          <Label htmlFor="date-picker" className="px-1">
-            Date
-          </Label>
+          <Label>Date</Label>
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                id="date-picker"
                 className="w-48 justify-between font-normal"
                 disabled={loading || !selectedUid}
               >
@@ -532,19 +531,14 @@ const Playback = () => {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
-                })}{" "}
+                })}
                 <ChevronDownIcon className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent
-              className="w-auto overflow-hidden p-0"
-              align="start"
-            >
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={date}
-                captionLayout="dropdown"
-                today={new Date()}
                 onSelect={handleDateSelect}
                 disabled={{ before: minDate, after: maxDate }}
               />
@@ -552,35 +546,20 @@ const Playback = () => {
           </Popover>
         </div>
 
-        {/* Current Recording Info */}
+        {/* Current Recording */}
         {activeRecording && (
           <div className="flex flex-col gap-3 flex-1">
-            <Label className="px-1">Current Recording</Label>
+            <Label>Current Recording</Label>
             <div className="text-sm py-2 px-3 bg-muted rounded-md">
               <div className="font-medium">{activeRecording.title}</div>
               <div className="text-xs text-muted-foreground mt-1">
-                {new Date(activeRecording.start).toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                -{" "}
-                {new Date(activeRecording.end).toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {new Date(activeRecording.start).toLocaleTimeString()} -{" "}
+                {new Date(activeRecording.end).toLocaleTimeString()}
               </div>
             </div>
           </div>
         )}
       </div>
-
-      {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center gap-2 text-muted-foreground py-4">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Loading recordings...</span>
-        </div>
-      )}
 
       {/* Timeline */}
       {!loading && (
@@ -590,6 +569,18 @@ const Playback = () => {
           selectedDate={date}
           onSelectRecording={handleTimelineSelect}
           activeRecording={activeRecording}
+        />
+      )}
+      {loading && (
+        <div className="flex items-center justify-center gap-2 text-muted-foreground py-4">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Loading recordings...</span>
+        </div>
+      )}
+      {showSessionTimeout && (
+        <SessionTimeoutDialog
+          open={showSessionTimeout}
+          onClose={() => setShowSessionTimeout(false)}
         />
       )}
     </div>

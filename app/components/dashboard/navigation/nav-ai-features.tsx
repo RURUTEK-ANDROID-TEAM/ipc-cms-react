@@ -19,7 +19,7 @@ export function NavAIFeatures({
   const { isMobile } = useSidebar();
 
   return (
-    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+    <SidebarGroup>
       <SidebarGroupLabel>AI Features</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
@@ -39,8 +39,8 @@ export function NavAIFeatures({
                   <IconDots />
                   <span className="sr-only">More</span>
                 </SidebarMenuAction>
-              </DropdownMenuTrigger> */}
-            {/* <DropdownMenuContent
+              </DropdownMenuTrigger> 
+             <DropdownMenuContent
                 className="w-24 rounded-lg"
                 side={isMobile ? "bottom" : "right"}
                 align={isMobile ? "end" : "start"}

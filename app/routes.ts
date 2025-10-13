@@ -14,7 +14,8 @@ export default [
     index("routes/dashboard/pages/dashboard.tsx"), // "/dashboard"
     route("live-view", "routes/dashboard/pages/live-view.tsx"), // "/dashboard/live-view"
     route("groups", "routes/dashboard/pages/groups.tsx"), // "/dashboard/groups"
-    route("playback", "routes/dashboard/pages/playback.tsx"), // "/dashboard/playback"
+    route("playback/:uid?", "routes/dashboard/pages/playback.tsx"), // "/dashboard/playback"
     route("management", "routes/dashboard/pages/management-wrapper.tsx"), // "/dashboard/users"
+    route("settings", "routes/dashboard/pages/settings.tsx"), // "/dashboard/settings"
   ]),
 ] satisfies RouteConfig;

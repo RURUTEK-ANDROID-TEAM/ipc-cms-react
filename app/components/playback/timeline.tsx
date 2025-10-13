@@ -1,24 +1,27 @@
-// timeline.tsx (updated with fixes)
+// timeline.tsx
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { DataSet } from "vis-data";
 import { Timeline } from "vis-timeline/standalone";
 import "vis-timeline/styles/vis-timeline-graph2d.min.css";
 import "./timeline.css";
 
+export type Recording = {
+  id: number;
+  recording_id: string;
+  camera_id: number;
+  uid: string;
+  start: string;
+  end: string;
+  url: string;
+  title?: string;
+};
+
 interface TimelineProps {
   videoRef: RefObject<HTMLVideoElement | null>;
-  recordings: { id: number; start: string; end: string; url: string }[];
+  recordings: Recording[];
   selectedDate?: Date;
-  onSelectRecording?: (
-    rec: { id: number; start: string; end: string; url: string },
-    seekSeconds: number
-  ) => void;
-  activeRecording: {
-    id: number;
-    start: string;
-    end: string;
-    url: string;
-  } | null;
+  onSelectRecording?: (rec: Recording, seekSeconds: number) => void;
+  activeRecording: Recording | null;
 }
 
 export function PlaybackTimeline({
@@ -31,90 +34,102 @@ export function PlaybackTimeline({
   const timelineRef = useRef<HTMLDivElement>(null);
   const timelineInstance = useRef<Timeline | null>(null);
 
+  // Get timeline bounds for the selected day
   const getTimelineBounds = useCallback(() => {
     const baseDate = selectedDate || new Date();
+
+    // Create day bounds in local timezone
     const dayStart = new Date(baseDate);
     dayStart.setHours(0, 0, 0, 0);
+
     const dayEnd = new Date(baseDate);
     dayEnd.setHours(23, 59, 59, 999);
+
+    console.log("Timeline bounds:", {
+      dayStart: dayStart.toISOString(),
+      dayEnd: dayEnd.toISOString(),
+    });
 
     return { min: dayStart, max: dayEnd };
   }, [selectedDate]);
 
+  // Handle timeline click
   const handleTimelineClick = useCallback(
     (time: Date) => {
-      console.log("Timeline clicked at:", time);
+      if (!time) return;
 
       const clickedTime = time.getTime();
       const matchingRecording = recordings.find((rec) => {
         const start = new Date(rec.start).getTime();
         const end = new Date(rec.end).getTime();
-        const isInRange = clickedTime >= start && clickedTime <= end;
-
-        console.log(
-          `Checking recording ${rec.id}: ${start} <= ${clickedTime} <= ${end} = ${isInRange}`
-        );
-        return isInRange;
+        return clickedTime >= start && clickedTime <= end;
       });
 
-      console.log("Matching recording:", matchingRecording);
-
       if (matchingRecording && onSelectRecording) {
-        const recordingStartTime = new Date(matchingRecording.start).getTime();
-        const seekSeconds = (clickedTime - recordingStartTime) / 1000;
-        console.log("Calling onSelectRecording with seek:", seekSeconds);
+        const recordingStart = new Date(matchingRecording.start).getTime();
+        const seekSeconds = (clickedTime - recordingStart) / 1000;
         onSelectRecording(matchingRecording, seekSeconds);
-      } else {
-        console.log("No matching recording found for clicked time");
       }
     },
     [recordings, onSelectRecording]
   );
 
+  // Initialize timeline
   useEffect(() => {
-    if (!timelineRef.current) {
-      console.log("Timeline ref not available");
-      return;
+    if (!timelineRef.current) return;
+
+    console.log("Initializing timeline with recordings:", recordings);
+
+    // Clean up previous timeline
+    if (timelineInstance.current) {
+      timelineInstance.current.destroy();
+      timelineInstance.current = null;
     }
 
-    console.log("Timeline effect triggered with recordings:", recordings);
-
+    // Filter valid recordings
     const validRecordings = recordings.filter((rec) => {
       const start = new Date(rec.start);
       const end = new Date(rec.end);
-      const isValidDates = !isNaN(start.getTime()) && !isNaN(end.getTime());
-      const isValidRange = start <= end;
+      const isValid =
+        !isNaN(start.getTime()) && !isNaN(end.getTime()) && start <= end;
 
-      console.log(
-        `Recording ${rec.id}: start=${start}, end=${end}, valid=${isValidDates && isValidRange}`
-      );
-      return isValidDates && isValidRange;
+      if (!isValid) {
+        console.warn("Invalid recording filtered out:", rec);
+      }
+
+      return isValid;
     });
 
-    console.log("Valid recordings:", validRecordings);
+    console.log("Valid recordings for timeline:", validRecordings.length);
 
-    // Create items for the timeline
+    // Create timeline items
     const items = new DataSet(
       validRecordings.map((rec) => {
-        const startDate = new Date(rec.start);
-        const endDate = new Date(rec.end);
+        const start = new Date(rec.start);
+        const end = new Date(rec.end);
+
+        console.log("Timeline item:", {
+          id: rec.id,
+          recording_id: rec.recording_id,
+          start: start.toISOString(),
+          end: end.toISOString(),
+          startLocal: start.toLocaleString(),
+          endLocal: end.toLocaleString(),
+        });
 
         return {
-          id: rec.id,
-          start: startDate,
-          end: endDate,
-          content: `Recording ${rec.id}`,
-          className: "recorded-segment",
+          id: Number(rec.id),
+          start,
+          end,
+          content: rec.recording_id,
           type: "range" as const,
-          title: `${`Recording ${rec.id}`}\n${startDate.toLocaleTimeString()} - ${endDate.toLocaleTimeString()}`,
+          className: "recorded-segment",
+          title: `${rec.recording_id}\n${start.toLocaleTimeString()} - ${end.toLocaleTimeString()}`,
         };
       })
     );
 
-    console.log("Timeline items:", items.get());
-
     const bounds = getTimelineBounds();
-    console.log("Timeline bounds:", bounds);
 
     const options = {
       stack: false,
@@ -130,19 +145,16 @@ export function PlaybackTimeline({
       orientation: "top" as const,
       showCurrentTime: false,
       height: "100px",
-      // Force timeline to fit the window
       start: bounds.min,
       end: bounds.max,
     };
 
-    // Destroy existing timeline
-    if (timelineInstance.current) {
-      console.log("Destroying existing timeline");
-      timelineInstance.current.destroy();
-    }
+    console.log("Creating timeline with options:", {
+      itemCount: items.length,
+      bounds,
+    });
 
-    // Create new timeline
-    console.log("Creating new timeline");
+    // Create timeline
     timelineInstance.current = new Timeline(
       timelineRef.current,
       items,
@@ -150,66 +162,44 @@ export function PlaybackTimeline({
     );
 
     // Add playback cursor
-    const markerId = "playback-cursor";
     try {
-      timelineInstance.current.addCustomTime(bounds.min, markerId);
+      timelineInstance.current.addCustomTime(bounds.min, "playback-cursor");
     } catch (e) {
-      console.log("Could not add custom time marker:", e);
+      console.warn("Could not add custom time:", e);
     }
 
-    // Add click event listener
+    // Click listener
     timelineInstance.current.on("click", (props) => {
-      console.log("Timeline click event:", props);
-      if (props.time) {
-        handleTimelineClick(new Date(props.time));
-      }
-    });
-
-    // Add ready event listener
-    timelineInstance.current.on("ready", () => {
-      console.log("Timeline is ready");
+      if (props.time) handleTimelineClick(new Date(props.time));
     });
 
     return () => {
       if (timelineInstance.current) {
-        console.log("Cleaning up timeline");
         timelineInstance.current.destroy();
         timelineInstance.current = null;
       }
     };
-  }, [recordings, selectedDate, getTimelineBounds, handleTimelineClick]);
+  }, [recordings, getTimelineBounds, handleTimelineClick]);
 
-  // Update playback position cursor based on video currentTime
+  // Update playback cursor based on video time
   useEffect(() => {
     const video = videoRef.current;
     const timeline = timelineInstance.current;
+    if (!video || !timeline || !activeRecording) return;
 
-    if (!video || !timeline) return;
-
-    const updatePlaybackCursor = () => {
-      if (!activeRecording) return;
-
+    const updateCursor = () => {
       const recordingStart = new Date(activeRecording.start).getTime();
-      const currentPlaybackTime = recordingStart + video.currentTime * 1000;
-
+      const currentTime = recordingStart + video.currentTime * 1000;
       try {
-        timeline.setCustomTime(
-          new Date(currentPlaybackTime),
-          "playback-cursor"
-        );
+        timeline.setCustomTime(new Date(currentTime), "playback-cursor");
       } catch (e) {
-        // Ignore errors if cursor doesn't exist
+        // Ignore errors when cursor is outside visible range
       }
     };
 
-    const handleTimeUpdate = () => {
-      updatePlaybackCursor();
-    };
-
-    video.addEventListener("timeupdate", handleTimeUpdate);
-
+    video.addEventListener("timeupdate", updateCursor);
     return () => {
-      video.removeEventListener("timeupdate", handleTimeUpdate);
+      video.removeEventListener("timeupdate", updateCursor);
     };
   }, [videoRef, activeRecording]);
 

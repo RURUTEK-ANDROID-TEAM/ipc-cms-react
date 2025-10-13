@@ -1,10 +1,3 @@
-import {
-  IconCreditCard,
-  IconDotsVertical,
-  IconLogout,
-  IconNotification,
-  IconUserCircle,
-} from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -23,7 +16,13 @@ import {
 } from "@/components/ui/sidebar";
 import { ModeToggle } from "@/components/theme/mode-toggle";
 import { useNavigate } from "react-router";
-import { BellRing, CircleUser, CreditCard, LogOut } from "lucide-react";
+import {
+  BellRing,
+  CircleUser,
+  CreditCard,
+  EllipsisVertical,
+  LogOut,
+} from "lucide-react";
 
 interface NavUserProps {
   user: {
@@ -74,7 +73,7 @@ export function NavUser({ user }: NavUserProps) {
                 avatar={user.avatar}
                 className="grayscale"
               />
-              <IconDotsVertical className="ml-auto size-4" />
+              <EllipsisVertical className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
