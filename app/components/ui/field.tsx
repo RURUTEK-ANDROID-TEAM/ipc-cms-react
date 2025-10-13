@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { Activity, useMemo } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
@@ -171,14 +171,14 @@ function FieldSeparator({
       {...props}
     >
       <Separator className="absolute inset-0 top-1/2" />
-      {children && (
+      <Activity mode={children ? "visible" : "hidden"}>
         <span
           className="bg-background text-muted-foreground relative mx-auto block w-fit px-2"
           data-slot="field-separator-content"
         >
           {children}
         </span>
-      )}
+      </Activity>
     </div>
   );
 }

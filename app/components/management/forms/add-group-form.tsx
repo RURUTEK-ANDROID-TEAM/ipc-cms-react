@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Activity, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   DialogClose,
   DialogDescription,
@@ -43,11 +43,11 @@ export const AddGroupForm = ({
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4">
-        {error && (
+        <Activity mode={error ? "visible" : "hidden"}>
           <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
             {error}
           </div>
-        )}
+        </Activity>
         <div className="grid gap-3">
           <Label htmlFor="name">Name</Label>
           <Input

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, Activity } from "react";
 import type { DeviceType, GroupType } from "../schemas/schemas";
 import { toast } from "sonner";
 import {
@@ -208,11 +208,11 @@ export const AddDevicesDialog = ({
             Serial: {cam.serial_number || "No Serial"} • MAC:{" "}
             {cam.mac_address || "No MAC"}
           </div>
-          {cam.model && (
+          <Activity mode={cam.model ? "visible" : "hidden"}>
             <div className="text-xs text-muted-foreground">
               Model: {cam.model} • IP: {cam.ip_address || "N/A"}
             </div>
-          )}
+          </Activity>
         </div>
       </div>
     ));
@@ -222,12 +222,12 @@ export const AddDevicesDialog = ({
 
   return (
     <>
-      {showSessionTimeout && (
+      <Activity mode={showSessionTimeout ? "visible" : "hidden"}>
         <SessionTimeoutDialog
           open={showSessionTimeout}
           onClose={() => setShowSessionTimeout(false)}
         />
-      )}
+      </Activity>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>

@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import { Activity } from "react";
 
 interface NavItem {
   title: string;
@@ -49,7 +50,7 @@ export function NavMain({ items }: NavMainProps) {
                           }`
                         }
                       >
-                        {item.icon && (
+                        <Activity mode={item.icon ? "visible" : "hidden"}>
                           <item.icon
                             className={`size-4 ${
                               isActive ? "text-blue-500" : "text-gray-500"
@@ -57,7 +58,7 @@ export function NavMain({ items }: NavMainProps) {
                               isActive ? "text-blue-400" : "text-white"
                             }`}
                           />
-                        )}
+                        </Activity>
                         <span
                           className={`${
                             isActive ? "text-blue-500" : "text-gray-700"

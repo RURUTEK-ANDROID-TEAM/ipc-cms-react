@@ -1,4 +1,4 @@
-import { useCallback, useState, type FormEvent } from "react";
+import { Activity, useCallback, useState, type FormEvent } from "react";
 import { AddGroupForm } from "@/components/management/forms/add-group-form";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -109,12 +109,12 @@ export const CreateGroupDialog = () => {
           />
         </DialogContent>
       </Dialog>
-      {showSessionTimeout && (
+      <Activity mode={showSessionTimeout ? "visible" : "hidden"}>
         <SessionTimeoutDialog
           open={showSessionTimeout}
           onClose={() => setShowSessionTimeout(false)}
         />
-      )}
+      </Activity>
     </>
   );
 };

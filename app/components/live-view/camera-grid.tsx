@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Maximize, Video } from "lucide-react";
-import { type FC } from "react";
+import { Activity, type FC } from "react";
 
 type CameraGridProps = {
   cameraUIDs: string[];
@@ -61,11 +61,11 @@ export const CameraGrid: FC<CameraGridProps> = ({
                     <div className="absolute bottom-0 left-0 right-0 text-white text-xs px-3 py-2 flex flex-col gap-0.5">
                       <div className="font-medium truncate">
                         {uid || "Unknown UID"}
-                        {isRecording && (
+                        <Activity mode={isRecording ? "visible" : "hidden"}>
                           <span className="ml-2 text-red-500 font-bold animate-pulse">
                             ● REC
                           </span>
-                        )}
+                        </Activity>
                       </div>
 
                       {/* Fullscreen button */}
@@ -95,11 +95,11 @@ export const CameraGrid: FC<CameraGridProps> = ({
                 {/* Persistent bottom bar (fades on hover) */}
                 <div className="absolute bottom-0 left-0 right-0 text-white text-xs px-3 py-2 flex flex-col gap-0.5 opacity-100 transition-opacity group-hover:opacity-0">
                   <div className="font-medium truncate">
-                    {isRecording && (
+                    <Activity mode={isRecording ? "visible" : "hidden"}>
                       <span className="ml-2 text-red-500 font-bold animate-pulse">
                         ● REC
                       </span>
-                    )}
+                    </Activity>
                   </div>
                 </div>
               </div>

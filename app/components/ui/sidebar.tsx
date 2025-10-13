@@ -31,6 +31,7 @@ import {
   type ComponentProps,
   type CSSProperties,
   memo,
+  Activity,
 } from "react";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
@@ -621,12 +622,12 @@ function SidebarMenuSkeleton({
       className={cn("flex h-8 items-center gap-2 rounded-md px-2", className)}
       {...props}
     >
-      {showIcon && (
+      <Activity mode={showIcon ? "visible" : "hidden"}>
         <Skeleton
           className="size-4 rounded-md"
           data-sidebar="menu-skeleton-icon"
         />
-      )}
+      </Activity>
       <Skeleton
         className="h-4 max-w-(--skeleton-width) flex-1"
         data-sidebar="menu-skeleton-text"

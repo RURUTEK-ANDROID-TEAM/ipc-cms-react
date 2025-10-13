@@ -22,6 +22,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import {
+  Activity,
   useCallback,
   useEffect,
   useRef,
@@ -405,11 +406,6 @@ const Playback = () => {
           playsInline
           muted
         />
-        {videoLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-            <Loader2 className="h-8 w-8 animate-spin text-white" />
-          </div>
-        )}
         {!selectedUrl && !loading && (
           <div className="absolute inset-0 flex items-center justify-center text-white/70">
             <div className="text-center">
@@ -419,7 +415,6 @@ const Playback = () => {
           </div>
         )}
       </AspectRatio>
-
       {/* Controls */}
       <div className="flex items-center justify-center space-x-4 p-2 bg-muted rounded-lg">
         <Button
@@ -467,14 +462,12 @@ const Playback = () => {
           <SkipForwardIcon className="h-5 w-5" />
         </Button>
       </div>
-
-      {error && (
+      <Activity mode={error ? "visible" : "hidden"}>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-      )}
-
+      </Activity>
       {/* Camera Picker & Date */}
       <div className="flex flex-wrap gap-4">
         {/* Device Picker */}
@@ -562,7 +555,7 @@ const Playback = () => {
       </div>
 
       {/* Timeline */}
-      {!loading && (
+      <Activity mode={!loading ? "visible" : "hidden"}>
         <PlaybackTimeline
           videoRef={videoRef}
           recordings={recordings}
@@ -570,19 +563,19 @@ const Playback = () => {
           onSelectRecording={handleTimelineSelect}
           activeRecording={activeRecording}
         />
-      )}
-      {loading && (
+      </Activity>
+      <Activity mode={loading ? "visible" : "hidden"}>
         <div className="flex items-center justify-center gap-2 text-muted-foreground py-4">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Loading recordings...</span>
         </div>
-      )}
-      {showSessionTimeout && (
+      </Activity>
+      <Activity mode={showSessionTimeout ? "visible" : "hidden"}>
         <SessionTimeoutDialog
           open={showSessionTimeout}
           onClose={() => setShowSessionTimeout(false)}
         />
-      )}
+      </Activity>
     </div>
   );
 };

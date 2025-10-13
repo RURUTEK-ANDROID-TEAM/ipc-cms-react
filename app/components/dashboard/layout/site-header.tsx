@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import type { ReactNode } from "react";
+import { Activity, type ReactNode } from "react";
 import { Link } from "react-router";
 
 type BreadcrumbItem = {
@@ -58,7 +58,9 @@ export function SiteHeader({
                         </BreadcrumbLink>
                       )}
                     </BreadcrumbItem>
-                    {!isLastItem && <BreadcrumbSeparator />}
+                    <Activity mode={!isLastItem ? "visible" : "hidden"}>
+                      <BreadcrumbSeparator />
+                    </Activity>
                   </div>
                 );
               })}

@@ -21,6 +21,7 @@ import type { DecodedToken } from "@/lib/utils";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import {
+  Activity,
   useCallback,
   useEffect,
   useRef,
@@ -294,12 +295,12 @@ const Groups = () => {
 
   return (
     <>
-      {showSessionTimeout && (
+      <Activity mode={showSessionTimeout ? "visible" : "hidden"}>
         <SessionTimeoutDialog
           open={showSessionTimeout}
           onClose={() => setShowSessionTimeout(false)}
         />
-      )}
+      </Activity>
       <div className="flex flex-col px-4 md:gap-6 md:px-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="flex flex-wrap">

@@ -1,6 +1,12 @@
 import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
-import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import {
+  Activity,
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import { cn } from "@/lib/utils";
 
 export interface IconHandle {
@@ -112,9 +118,9 @@ const BaseUserIcon = forwardRef<IconHandle, IconProps>(
         </svg>
 
         {/* Badge overlay */}
-        {badge && (
+        <Activity mode={badge ? "visible" : "hidden"}>
           <span className="absolute -bottom-1 -right-1 text-xs">{badge}</span>
-        )}
+        </Activity>
       </div>
     );
   }

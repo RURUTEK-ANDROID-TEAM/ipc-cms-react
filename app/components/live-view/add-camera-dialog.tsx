@@ -1,4 +1,4 @@
-import { useCallback, useState, type FormEvent } from "react";
+import { Activity, useCallback, useState, type FormEvent } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Video } from "lucide-react";
@@ -109,12 +109,12 @@ export const AddCameraDialog = () => {
           />
         </DialogContent>
       </Dialog>
-      {showSessionTimeout && (
+      <Activity mode={showSessionTimeout ? "visible" : "hidden"}>
         <SessionTimeoutDialog
           open={showSessionTimeout}
           onClose={() => setShowSessionTimeout(false)}
         />
-      )}
+      </Activity>
     </>
   );
 };

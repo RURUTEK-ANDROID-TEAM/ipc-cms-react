@@ -7,6 +7,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { Activity } from "react";
 
 export function ModeToggle() {
   const { theme, setTheme } = useTheme();
@@ -14,11 +15,14 @@ export function ModeToggle() {
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger>
-        {theme === "light" && <Sun className="mr-2 h-4 w-4" />}
-        {theme === "dark" && <Moon className="mr-2 h-4 w-4" />}
+        <Activity mode={theme === "light" ? "visible" : "hidden"}>
+          <Sun className="mr-2 h-4 w-4" />
+        </Activity>
+        <Activity mode={theme === "dark" ? "visible" : "hidden"}>
+          <Moon className="mr-2 h-4 w-4" />
+        </Activity>
         <span>Theme</span>
       </DropdownMenuSubTrigger>
-
       <DropdownMenuPortal>
         <DropdownMenuSubContent>
           <DropdownMenuItem onClick={() => setTheme("light")}>
