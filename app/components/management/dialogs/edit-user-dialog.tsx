@@ -132,11 +132,7 @@ export const EditUserDialog = ({
             >
               Cancel
             </Button>
-            <Button
-              className="dark:text-white"
-              type="submit"
-              disabled={loading}
-            >
+            <Button type="submit" disabled={loading}>
               {loading ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>

@@ -273,11 +273,12 @@ const SidebarTrigger = memo(function SidebarTrigger({
       }}
       {...props}
     >
-      {open ? (
+      <Activity mode={open ? "visible" : "hidden"}>
         <PanelRightIcon className="size-4" />
-      ) : (
+      </Activity>
+      <Activity mode={!open ? "visible" : "hidden"}>
         <PanelLeftIcon className="size-4" />
-      )}
+      </Activity>
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
@@ -287,7 +288,7 @@ function SidebarRail({ className, ...props }: ComponentProps<"button">) {
   const { toggleSidebar } = useSidebar();
 
   return (
-    <button
+    <Button
       data-sidebar="rail"
       data-slot="sidebar-rail"
       aria-label="Toggle Sidebar"

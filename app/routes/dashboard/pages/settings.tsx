@@ -1,16 +1,15 @@
 import { Button } from "@/components/ui/button";
 import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSeparator,
-  FieldSet,
-} from "@/components/ui/field";
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, type ReactNode } from "react";
 import { useOutletContext } from "react-router";
 
@@ -38,160 +37,91 @@ const Settings = () => {
   }, []);
 
   return (
-    <>
-      <div className="flex justify-center m-8 md:m-0">
-        <form className="w-full max-w-4xl">
-          <FieldSet>
-            <FieldLegend>General</FieldLegend>
-            <FieldDescription>
-              Fill in your profile information.
-            </FieldDescription>
-            <FieldSeparator />
-            <FieldGroup>
-              <Field orientation="responsive">
-                <FieldContent>
-                  <FieldLabel htmlFor="name">Name</FieldLabel>
-                  <FieldDescription>
-                    Provide your full name for identification.
-                  </FieldDescription>
-                </FieldContent>
-                <Input id="name" placeholder="Rurutek" required />
-              </Field>
-              <FieldSeparator />
-
-              <Field orientation="responsive">
-                <FieldContent>
-                  <FieldLabel htmlFor="message">Message</FieldLabel>
-                  <FieldDescription>
-                    You can write your message here. Keep it short, preferably
-                    under 100 characters.
-                  </FieldDescription>
-                </FieldContent>
-                <Textarea
-                  id="message"
-                  placeholder="Hello, world!"
-                  required
-                  className="min-h-[100px] resize-none sm:min-w-[300px]"
-                />
-              </Field>
-
-              <FieldSeparator />
-
-              <div className="flex gap-4 justify-center">
-                <Button type="submit" className="dark:text-white">
-                  Submit
-                </Button>
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </div>
-            </FieldGroup>
-          </FieldSet>
-        </form>
+    <div className="flex items-center justify-center w-full h-full">
+      <div className="flex w-full h-full max-w-5xl flex-col gap-6">
+        <Tabs defaultValue="general">
+          <TabsList>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="security">Access & Security</TabsTrigger>
+            <TabsTrigger value="notifications">
+              Notifications & Emails
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="general">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account</CardTitle>
+                <CardDescription>
+                  Make changes to your account here. Click save when you&apos;re
+                  done.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-6">
+                <div className="grid gap-3">
+                  <Label htmlFor="tabs-demo-name">Name</Label>
+                  <Input id="tabs-demo-name" defaultValue="Pedro Duarte" />
+                </div>
+                <div className="grid gap-3">
+                  <Label htmlFor="tabs-demo-username">Username</Label>
+                  <Input id="tabs-demo-username" defaultValue="@peduarte" />
+                </div>
+              </CardContent>
+              <CardFooter className="justify-end">
+                <Button>Save changes</Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          <TabsContent value="security">
+            <Card>
+              <CardHeader>
+                <CardTitle>Password</CardTitle>
+                <CardDescription>
+                  Change your password here. After saving, you&apos;ll be logged
+                  out.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-6">
+                <div className="grid gap-3">
+                  <Label htmlFor="tabs-demo-current">Current password</Label>
+                  <Input id="tabs-demo-current" type="password" />
+                </div>
+                <div className="grid gap-3">
+                  <Label htmlFor="tabs-demo-new">New password</Label>
+                  <Input id="tabs-demo-new" type="password" />
+                </div>
+              </CardContent>
+              <CardFooter className="justify-end">
+                <Button>Save password</Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account</CardTitle>
+                <CardDescription>
+                  Make changes to your account here. Click save when you&apos;re
+                  done.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-6">
+                <div className="grid gap-3">
+                  <Label htmlFor="tabs-demo-name">Name</Label>
+                  <Input id="tabs-demo-name" defaultValue="Pedro Duarte" />
+                </div>
+                <div className="grid gap-3">
+                  <Label htmlFor="tabs-demo-username">Username</Label>
+                  <Input id="tabs-demo-username" defaultValue="@peduarte" />
+                </div>
+              </CardContent>
+              <CardFooter className="justify-end">
+                <Button>Save changes</Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-      <div className="flex justify-center m-8 md:m-0">
-        <form className="w-full max-w-4xl">
-          <FieldSet>
-            <FieldLegend>Access and Security</FieldLegend>
-            <FieldDescription>
-              Fill in your profile information.
-            </FieldDescription>
-            <FieldSeparator />
-            <FieldGroup>
-              <Field orientation="responsive">
-                <FieldContent>
-                  <FieldLabel htmlFor="name">Name</FieldLabel>
-                  <FieldDescription>
-                    Provide your full name for identification.
-                  </FieldDescription>
-                </FieldContent>
-                <Input id="name" placeholder="Evil Rabbit" required />
-              </Field>
-
-              <FieldSeparator />
-
-              <Field orientation="responsive">
-                <FieldContent>
-                  <FieldLabel htmlFor="message">Message</FieldLabel>
-                  <FieldDescription>
-                    You can write your message here. Keep it short, preferably
-                    under 100 characters.
-                  </FieldDescription>
-                </FieldContent>
-                <Textarea
-                  id="message"
-                  placeholder="Hello, world!"
-                  required
-                  className="min-h-[100px] resize-none sm:min-w-[300px]"
-                />
-              </Field>
-
-              <FieldSeparator />
-
-              <div className="flex gap-4 justify-center">
-                <Button type="submit" className="dark:text-white">
-                  Submit
-                </Button>
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </div>
-            </FieldGroup>
-          </FieldSet>
-        </form>
-      </div>
-      <div className="flex justify-center m-8 md:m-0">
-        <form className="w-full max-w-4xl">
-          <FieldSet>
-            <FieldLegend>Notifications and Emails</FieldLegend>
-            <FieldDescription>
-              Fill in your profile information.
-            </FieldDescription>
-            <FieldSeparator />
-            <FieldGroup>
-              <Field orientation="responsive">
-                <FieldContent>
-                  <FieldLabel htmlFor="name">Name</FieldLabel>
-                  <FieldDescription>
-                    Provide your full name for identification.
-                  </FieldDescription>
-                </FieldContent>
-                <Input id="name" placeholder="Evil Rabbit" required />
-              </Field>
-
-              <FieldSeparator />
-
-              <Field orientation="responsive">
-                <FieldContent>
-                  <FieldLabel htmlFor="message">Message</FieldLabel>
-                  <FieldDescription>
-                    You can write your message here. Keep it short, preferably
-                    under 100 characters.
-                  </FieldDescription>
-                </FieldContent>
-                <Textarea
-                  id="message"
-                  placeholder="Hello, world!"
-                  required
-                  className="min-h-[100px] resize-none sm:min-w-[300px]"
-                />
-              </Field>
-
-              <FieldSeparator />
-
-              <div className="flex gap-4 justify-center">
-                <Button type="submit" className="dark:text-white">
-                  Submit
-                </Button>
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </div>
-            </FieldGroup>
-          </FieldSet>
-        </form>
-      </div>
-    </>
+    </div>
   );
 };
 

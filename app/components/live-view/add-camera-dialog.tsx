@@ -97,7 +97,7 @@ export const AddCameraDialog = () => {
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button className="dark:text-white">
+          <Button>
             <Video /> Add Device
           </Button>
         </DialogTrigger>

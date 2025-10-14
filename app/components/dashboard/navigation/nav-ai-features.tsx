@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import { Link } from "react-router";
 
 export function NavAIFeatures({
   items,
@@ -32,10 +33,10 @@ export function NavAIFeatures({
             <TooltipTrigger asChild>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <a href={item.url}>
+                  <Link to={item.url}>
                     <item.icon />
                     <span>{item.name}</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
                 {/* <DropdownMenu>
                   <DropdownMenuTrigger asChild>

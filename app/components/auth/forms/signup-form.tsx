@@ -43,7 +43,7 @@ export function SignUpForm({ className, ...props }: ComponentProps<"div">) {
                   <Label htmlFor="confirm-password">Confirm Password</Label>
                   <Input id="confirm-password" type="password" required />
                 </div>
-                <Button type="submit" className="w-full dark:text-white">
+                <Button type="submit" className="w-full">
                   Create Account
                 </Button>
               </div>

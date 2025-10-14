@@ -81,11 +81,7 @@ export const AddGroupForm = ({
             Cancel
           </Button>
         </DialogClose>
-        <Button
-          type="submit"
-          disabled={loading || !canSubmit}
-          className="dark:text-white"
-        >
+        <Button type="submit" disabled={loading || !canSubmit}>
           <Group />
           {loading ? "Adding..." : "Add Group"}
         </Button>

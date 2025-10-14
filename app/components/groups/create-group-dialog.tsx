@@ -97,7 +97,7 @@ export const CreateGroupDialog = () => {
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button className="dark:text-white">
+          <Button>
             <Group /> Create Group
           </Button>
         </DialogTrigger>

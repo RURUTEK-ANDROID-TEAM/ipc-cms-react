@@ -20,7 +20,7 @@ export function FormActions({
       <Button variant="outline" onClick={onCancel} disabled={loading}>
         {cancelText}
       </Button>
-      <Button className="dark:text-white" onClick={onSave} disabled={loading}>
+      <Button onClick={onSave} disabled={loading}>
         {loading ? "Saving..." : saveText}
       </Button>
     </div>

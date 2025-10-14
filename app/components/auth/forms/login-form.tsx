@@ -108,11 +108,7 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
                     required
                   />
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full dark:text-white"
-                  disabled={loading}
-                >
+                <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Logging in..." : "Login"}
                 </Button>
               </div>
