@@ -47,11 +47,6 @@ const API_URL = "http://172.16.0.157:5000/api";
 type UserRole = "admin" | "operator" | "viewer" | null;
 
 const data = {
-  user: {
-    name: "admin",
-    email: "admin@example.com",
-    avatar: "",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -178,7 +173,14 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
+  const [userData, setUserData] = useState({
+    name: "",
+    role: "",
+    avatar: "",
+  });
+
   const [userRole, setUserRole] = useState<UserRole>(null);
+  const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [showSessionTimeout, setShowSessionTimeout] = useState(false);
 
@@ -209,13 +211,19 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
           "Cache-Control": "no-cache",
         };
 
-        const profileResponse = await axios.post<{ roles: string[] }>(
-          `${API_URL}/auth/profile`,
-          {},
-          { headers }
-        );
+        const profileResponse = await axios.post<{
+          username: string;
+          roles: string[];
+        }>(`${API_URL}/auth/profile`, {}, { headers });
 
+        const username = profileResponse.data.username;
         const role = profileResponse.data.roles[0] as UserRole;
+
+        setUserData({
+          name: username,
+          role: role || "",
+          avatar: "",
+        });
 
         setUserRole(role);
       } catch (err: any) {
@@ -294,7 +302,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 
         {/* Fixed footer */}
         <SidebarFooter className="flex-shrink-0">
-          <NavUser user={data.user} />
+          <NavUser user={userData} />
         </SidebarFooter>
       </Sidebar>
       {showSessionTimeout && (

@@ -12,7 +12,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { Activity } from "react";
-import { Link, NavLink } from "react-router";
+import { NavLink } from "react-router";
 
 export function NavAIFeatures({
   items,

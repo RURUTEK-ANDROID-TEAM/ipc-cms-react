@@ -27,19 +27,19 @@ import {
 interface NavUserProps {
   user: {
     name: string;
-    email: string;
+    role: string;
     avatar: string;
   };
 }
 
 interface UserInfoProps {
   name: string;
-  email: string;
+  role: string;
   avatar: string;
   className?: string;
 }
 
-const UserInfo = ({ name, email, avatar, className }: UserInfoProps) => (
+const UserInfo = ({ name, role, avatar, className }: UserInfoProps) => (
   <div className={`flex items-center gap-2 text-left text-sm ${className}`}>
     <Avatar className="h-8 w-8 rounded-lg">
       <AvatarImage src={avatar} alt={name} />
@@ -49,7 +49,9 @@ const UserInfo = ({ name, email, avatar, className }: UserInfoProps) => (
     </Avatar>
     <div className="grid flex-1 leading-tight">
       <span className="truncate font-medium">{name}</span>
-      <span className="truncate text-xs text-muted-foreground">{email}</span>
+      <span className="truncate text-xs text-muted-foreground">
+        {role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()}
+      </span>
     </div>
   </div>
 );
@@ -69,7 +71,7 @@ export function NavUser({ user }: NavUserProps) {
             >
               <UserInfo
                 name={user.name}
-                email={user.email}
+                role={user.role}
                 avatar={user.avatar}
                 className="grayscale"
               />
@@ -86,7 +88,7 @@ export function NavUser({ user }: NavUserProps) {
             <DropdownMenuLabel className="p-0 font-normal">
               <UserInfo
                 name={user.name}
-                email={user.email}
+                role={user.role}
                 avatar={user.avatar}
                 className="px-1 py-1.5"
               />
