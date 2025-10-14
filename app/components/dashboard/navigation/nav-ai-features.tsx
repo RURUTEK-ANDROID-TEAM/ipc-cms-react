@@ -11,7 +11,8 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { Link } from "react-router";
+import { Activity } from "react";
+import { Link, NavLink } from "react-router";
 
 export function NavAIFeatures({
   items,
@@ -28,17 +29,39 @@ export function NavAIFeatures({
     <SidebarGroup>
       <SidebarGroupLabel>AI Features</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => (
-          <Tooltip key={item.name} delayDuration={200}>
-            <TooltipTrigger asChild>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to={item.url}>
-                    <item.icon />
-                    <span>{item.name}</span>
-                  </Link>
-                </SidebarMenuButton>
-                {/* <DropdownMenu>
+        {items.map((item) => {
+          const isActive = location.pathname === item.url;
+
+          return (
+            <Tooltip key={item.name} delayDuration={200}>
+              <TooltipTrigger asChild>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      className={({ isActive }) =>
+                        `flex items-center gap-2 ${
+                          isActive ? "text-primary" : "text-muted-foreground"
+                        }`
+                      }
+                    >
+                      <Activity mode={item.icon ? "visible" : "hidden"}>
+                        <item.icon
+                          className={`size-4 ${
+                            isActive ? "text-blue-500" : "text-gray-500"
+                          } dark:${isActive ? "text-blue-400" : "text-white"}`}
+                        />
+                      </Activity>
+                      <span
+                        className={`${
+                          isActive ? "text-blue-500" : "text-gray-700"
+                        } dark:${isActive ? "text-blue-400" : "text-white"}`}
+                      >
+                        {item.name}
+                      </span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                  {/* <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuAction
                       showOnHover
@@ -68,17 +91,17 @@ export function NavAIFeatures({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu> */}
-              </SidebarMenuItem>
-            </TooltipTrigger>
-
-            <TooltipContent
-              side="right"
-              className="rounded-md px-2 py-1 text-sm text-popover-foreground border-border"
-            >
-              {item.name}
-            </TooltipContent>
-          </Tooltip>
-        ))}
+                </SidebarMenuItem>
+              </TooltipTrigger>
+              <TooltipContent
+                side="right"
+                className="rounded-md px-2 py-1 text-sm text-popover-foreground border-border"
+              >
+                {item.name}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
         {/* <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
             <IconDots className="text-sidebar-foreground/70" />

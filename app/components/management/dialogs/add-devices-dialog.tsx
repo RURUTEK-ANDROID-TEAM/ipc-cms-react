@@ -17,6 +17,7 @@ import { jwtDecode } from "jwt-decode";
 import type { DecodedToken } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
+import { Label } from "@/components/ui/label";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -191,28 +192,32 @@ export const AddDevicesDialog = ({
     }
 
     return cameras.map((cam) => (
-      <div
-        key={cam.camera_id}
-        className="flex items-center gap-3 border-b py-3"
-      >
-        <Checkbox
-          className="h-5 w-5 dark:text-white"
-          checked={selectedDevices.has(cam.camera_id)}
-          onCheckedChange={() => toggleDevice(cam.camera_id)}
-          disabled={loading}
-        />
-        <div className="flex-1">
-          <div className="font-medium">{cam.uid || "Unknown UID"}</div>
-          <div className="text-xs text-muted-foreground">
-            Serial: {cam.serial_number || "No Serial"} • MAC:{" "}
-            {cam.mac_address || "No MAC"}
-          </div>
-          <Activity mode={cam.model ? "visible" : "hidden"}>
+      <div key={cam.camera_id} className="flex items-center border-b py-3">
+        <Label
+          className="w-full hover:bg-accent/50 flex justify-center 
+                  items-center gap-3 rounded-lg border p-3 has-[[aria-checked=true]]:border-blue-600 
+                  has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 
+                  dark:has-[[aria-checked=true]]:bg-blue-950"
+        >
+          <Checkbox
+            className="h-5 w-5 dark:text-white"
+            checked={selectedDevices.has(cam.camera_id)}
+            onCheckedChange={() => toggleDevice(cam.camera_id)}
+            disabled={loading}
+          />
+          <div className="flex-1">
+            <div className="font-medium">{cam.uid || "Unknown UID"}</div>
             <div className="text-xs text-muted-foreground">
-              Model: {cam.model} • IP: {cam.ip_address || "N/A"}
+              Serial: {cam.serial_number || "No Serial"} • MAC:{" "}
+              {cam.mac_address || "No MAC"}
             </div>
-          </Activity>
-        </div>
+            <Activity mode={cam.model ? "visible" : "hidden"}>
+              <div className="text-xs text-muted-foreground">
+                Model: {cam.model} • IP: {cam.ip_address || "N/A"}
+              </div>
+            </Activity>
+          </div>
+        </Label>
       </div>
     ));
   }, [cameras, loading, selectedDevices, toggleDevice]);
