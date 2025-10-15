@@ -1,9 +1,8 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { CctvIcon } from "@/components/ui/icons/cctv";
 import { Spinner } from "@/components/ui/spinner";
 import type { DecodedToken } from "@/lib/utils";
 import axios from "axios";
-import { Cctv } from "components/animate-ui/icons/cctv";
-import { AnimateIcon } from "components/animate-ui/icons/icon";
 import { jwtDecode } from "jwt-decode";
 import { Video, VideoOffIcon } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
@@ -118,10 +117,7 @@ export function SectionCards({ refreshKey }: SectionCardsProps) {
           <CardTitle className="text-lg font-medium text-gray-700 dark:text-gray-200">
             {title}
           </CardTitle>
-
-          <AnimateIcon animate={true} loop={true}>
-            <Cctv className={`h-8 w-8 ${iconColor}`} />
-          </AnimateIcon>
+          <CctvIcon className={`h-8 w-8 ${iconColor}`} />
         </div>
         <CardTitle className="mt-2 text-2xl font-bold tabular-nums @[250px]/card:text-3xl">
           {count !== null ? <span>{count}</span> : <Spinner />}
