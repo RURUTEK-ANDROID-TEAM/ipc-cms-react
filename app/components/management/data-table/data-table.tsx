@@ -71,6 +71,7 @@ import { jwtDecode } from "jwt-decode";
 import type { DecodedToken } from "@/lib/utils";
 import { useNavigate } from "react-router";
 import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
+import { Activity } from "react";
 
 const API_URL = "http://172.16.0.157:5000/api";
 
@@ -1093,12 +1094,12 @@ export const DataTable = ({
 
   return (
     <>
-      {showSessionTimeout && (
+      <Activity mode={showSessionTimeout ? "visible" : "hidden"}>
         <SessionTimeoutDialog
           open={showSessionTimeout}
           onClose={() => setShowSessionTimeout(false)}
         />
-      )}
+      </Activity>
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
@@ -1194,7 +1195,7 @@ export const DataTable = ({
                 ) : null}
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
-                {activeTab === "users" && (
+                <Activity mode={activeTab === "users" ? "visible" : "hidden"}>
                   <AddUserForm
                     onSubmit={handleAddUser}
                     loading={loading}
@@ -1202,22 +1203,21 @@ export const DataTable = ({
                     role={role}
                     setRole={setRole}
                   />
-                )}
-                {activeTab === "devices" && (
+                </Activity>
+                <Activity mode={activeTab === "devices" ? "visible" : "hidden"}>
                   <AddDeviceForm
                     onSubmit={handleAddDevice}
                     loading={loading}
                     error={error}
                   />
-                )}
-
-                {activeTab === "groups" && (
+                </Activity>
+                <Activity mode={activeTab === "groups" ? "visible" : "hidden"}>
                   <AddGroupForm
                     onSubmit={handleAddGroup}
                     loading={loading}
                     error={error}
                   />
-                )}
+                </Activity>
               </DialogContent>
             </Dialog>
           </div>

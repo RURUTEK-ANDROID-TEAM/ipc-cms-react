@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../ui/dropdown-menu";
+import { Activity } from "react";
 
 type ActionCellProps = {
   canEdit?: boolean;
@@ -44,7 +45,8 @@ export const ActionCell = ({
           </DropdownMenuItem>
         )}
         {canEdit && canDelete && <DropdownMenuSeparator />} */}
-        {canDelete && !hideDelete && (
+
+        <Activity mode={canDelete && !hideDelete ? "visible" : "hidden"}>
           <DropdownMenuItem
             onClick={onDelete}
             className="text-destructive focus:text-destructive cursor-pointer"
@@ -52,7 +54,7 @@ export const ActionCell = ({
             <IconTrash className="mr-2 h-4 w-4" />
             Delete
           </DropdownMenuItem>
-        )}
+        </Activity>
       </DropdownMenuContent>
     </DropdownMenu>
   );

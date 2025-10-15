@@ -17,12 +17,12 @@ import { NavSecondary } from "../navigation/nav-secondary";
 import { NavUser } from "../navigation/nav-user";
 import { NavAIFeatures } from "../navigation/nav-ai-features";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useState, type ComponentProps } from "react";
+import { Activity, useEffect, useState, type ComponentProps } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme-provider";
-import { useNavigate } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import type { DecodedToken } from "@/lib/utils";
 import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
 import {
@@ -270,7 +270,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
                 asChild
                 className="data-[slot=sidebar-menu-button]:!p-2"
               >
-                <a href="/dashboard">
+                <NavLink to="/dashboard">
                   <img
                     src={
                       theme === "dark"
@@ -283,7 +283,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
                   <span className="text-base font-semibold">
                     Ruru Tek Private Limited
                   </span>
-                </a>
+                </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -305,12 +305,12 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
           <NavUser user={userData} />
         </SidebarFooter>
       </Sidebar>
-      {showSessionTimeout && (
+      <Activity mode={showSessionTimeout ? "visible" : "hidden"}>
         <SessionTimeoutDialog
           open={showSessionTimeout}
           onClose={() => setShowSessionTimeout(false)}
         />
-      )}
+      </Activity>
     </>
   );
 }

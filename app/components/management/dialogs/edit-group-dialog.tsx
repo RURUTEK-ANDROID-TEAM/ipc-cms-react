@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { Activity, useEffect, useState, type FormEvent } from "react";
 import type { GroupType } from "../schemas/schemas";
 import { toast } from "sonner";
 import {
@@ -74,11 +74,11 @@ export const EditGroupDialog = ({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
-            {error && (
+            <Activity mode={error ? "visible" : "hidden"}>
               <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
                 {error}
               </div>
-            )}
+            </Activity>
             <div className="grid gap-3">
               <Label htmlFor="edit-group-name">Name</Label>
               <Input
