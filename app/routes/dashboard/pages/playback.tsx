@@ -1,3 +1,4 @@
+// src/pages/dashboard/playback.tsx
 import { PlaybackTimeline } from "@/components/playback/timeline";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
@@ -10,19 +11,12 @@ import {
 } from "@/components/ui/popover";
 import {
   ChevronDownIcon,
-  PlayIcon,
-  PauseIcon,
-  SkipBackIcon,
-  SkipForwardIcon,
-  FastForwardIcon,
-  RewindIcon,
   Loader2,
   Play,
   AlertCircle,
   ChevronDown,
 } from "lucide-react";
 import {
-  Activity,
   useCallback,
   useEffect,
   useRef,
@@ -30,12 +24,15 @@ import {
   type ReactNode,
 } from "react";
 import { useOutletContext, useNavigate, useParams } from "react-router";
-import Hls from "hls.js";
 import axios from "axios";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { jwtDecode } from "jwt-decode";
 import type { DecodedToken } from "@/lib/utils";
 import { SessionTimeoutDialog } from "@/components/auth/dialogs/session-timout-dialog";
+import {
+  ClapprPlayer,
+  type ClapprActions as PlayerActions,
+} from "@/components/player/clappr-player";
 
 type OutletHeaderSetter = {
   setHeader?: (ctx: {
@@ -65,29 +62,34 @@ const API_URL = "http://172.16.0.157:5000/api";
 const RECORD_API_URL = `${API_URL}/recording/record`;
 const CAMERA_API_URL = `${API_URL}/cameras`;
 
+const isRecordingLive = (recording: Recording): boolean => {
+  return !recording.end; // If end is set, treat as VOD; otherwise live
+};
+
 const Playback = () => {
   const outlet = useOutletContext<OutletHeaderSetter>();
   const navigate = useNavigate();
-  const { uid: urlUid } = useParams<{ uid?: string }>(); // Extract UID from URL
+  const { uid: urlUid } = useParams<{ uid?: string }>();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
+  const playerRef = useRef<PlayerActions | null>(null);
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [selectedUid, setSelectedUid] = useState<string | null>(urlUid || null);
   const [deviceOpen, setDeviceOpen] = useState(false);
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
 
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date>(new Date());
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [videoLoading, setVideoLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [activeRecording, setActiveRecording] = useState<Recording | null>(
     null
   );
-  const [retryCount, setRetryCount] = useState(0);
   const [showSessionTimeout, setShowSessionTimeout] = useState(false);
 
   // --- SYNC URL UID WITH STATE ---
@@ -108,81 +110,10 @@ const Playback = () => {
     });
   }, []);
 
-  // --- HLS CLEANUP ---
-  const cleanupHls = useCallback(() => {
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
-  }, []);
-
-  // --- INIT HLS ---
-  const initHls = useCallback(
-    (url: string) => {
-      const video = videoRef.current;
-      if (!video) return;
-
-      cleanupHls();
-      setVideoLoading(true);
-      setError(null);
-
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: false,
-          backBufferLength: 90,
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-        });
-
-        hlsRef.current = hls;
-        hls.loadSource(url);
-        hls.attachMedia(video);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => setVideoLoading(false));
-
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.error("HLS error:", data);
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                if (retryCount < 3) {
-                  setTimeout(
-                    () => {
-                      hls.startLoad();
-                      setRetryCount((p) => p + 1);
-                    },
-                    1000 * (retryCount + 1)
-                  );
-                } else {
-                  setError("Network error: unable to load video after retries");
-                  setVideoLoading(false);
-                }
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                hls.recoverMediaError();
-                break;
-              default:
-                setError(`Playback error: ${data.details}`);
-                setVideoLoading(false);
-                cleanupHls();
-            }
-          }
-        });
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = url;
-      } else {
-        setError("HLS not supported in this browser");
-      }
-    },
-    [cleanupHls, retryCount]
-  );
-
   // --- FETCH CAMERAS ---
   const fetchCameras = useCallback(async () => {
     try {
       const token = localStorage.getItem("accessToken");
-
       if (!token) {
         setShowSessionTimeout(true);
         return;
@@ -198,13 +129,12 @@ const Playback = () => {
       const res = await axios.get(CAMERA_API_URL, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       setDevices(res.data);
     } catch (err) {
       console.error("Failed to fetch cameras:", err);
       setDevices([]);
     }
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     fetchCameras();
@@ -233,7 +163,7 @@ const Playback = () => {
         const mapped: Recording[] = rawData
           .filter((r: any) => r.start && r.end && r.url)
           .map((r: any, i: number) => ({
-            id: r.id || i + 1, // Use numeric ID from API
+            id: r.id || i + 1,
             recording_id: r.recording_id || `recording-${i}`,
             start: r.start,
             end: r.end,
@@ -241,8 +171,6 @@ const Playback = () => {
             title: r.title || `Recording ${i + 1}`,
           }));
 
-        console.log(`Mapped: ${mapped}`);
-        //
         setRecordings(mapped);
         if (mapped.length === 0) setError(`No recordings for ${dateStr}`);
       } catch (err: any) {
@@ -260,57 +188,21 @@ const Playback = () => {
   // --- SELECT RECORDING ---
   const handleTimelineSelect = useCallback(
     (recording: Recording, seekSeconds: number) => {
-      const video = videoRef.current;
-      if (!video) return;
+      const isLive = isRecordingLive(recording);
+      const url = isLive
+        ? `${recording.url}?_t=${Date.now()}`
+        : recording.url.split("?")[0];
 
       setActiveRecording(recording);
+      setSelectedUrl(url);
 
-      if (selectedUrl !== recording.url) {
-        setSelectedUrl(recording.url);
-        initHls(recording.url);
-
-        const handleLoaded = () => {
-          video.currentTime = seekSeconds;
-          video.play().catch(() => setError("Failed to start playback"));
-          video.removeEventListener("loadeddata", handleLoaded);
-        };
-        video.addEventListener("loadeddata", handleLoaded);
-      } else {
-        video.currentTime = seekSeconds;
-        video.play().catch(() => setError("Failed to start playback"));
-      }
+      console.log(`📺 Playing ${isLive ? "LIVE" : "VOD"}: ${url}`);
     },
-    [selectedUrl, initHls]
+    []
   );
 
-  // --- PLAY/PAUSE ---
-  const togglePlayPause = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (video.paused) {
-      video.play().catch(() => setError("Playback failed"));
-    } else {
-      video.pause();
-    }
-  }, []);
-
-  // --- SEEK ---
-  const handleSeek = useCallback((seconds: number) => {
-    const video = videoRef.current;
-    if (!video || !video.duration) return;
-
-    const newTime = Math.max(
-      0,
-      Math.min(video.currentTime + seconds, video.duration)
-    );
-    video.currentTime = newTime;
-  }, []);
-
-  // --- AUTO PLAY NEXT ---
   const handleVideoEnded = useCallback(() => {
     if (!activeRecording || recordings.length === 0) return;
-
     const currentIndex = recordings.findIndex(
       (r) => r.id === activeRecording.id
     );
@@ -351,62 +243,54 @@ const Playback = () => {
     };
   }, [handleVideoEnded]);
 
-  useEffect(() => cleanupHls(), [cleanupHls]);
+  const minDate = new Date();
+  minDate.setDate(minDate.getDate() - 7);
+  const maxDate = new Date();
+  const selectedDevice = devices.find((d) => d.uid === selectedUid);
 
-  // --- DATE SELECT ---
-  const handleDateSelect = useCallback(
-    (d: Date | undefined) => {
-      const newDate = d || new Date();
-      setDate(newDate);
-      setOpen(false);
+  const handleDateSelect = useCallback((d: Date | undefined) => {
+    const newDate = d || new Date();
+    setDate(newDate);
+    setOpen(false);
+    setRecordings([]);
+    setSelectedUrl(null);
+    setActiveRecording(null);
+    setError(null);
+    setIsPlaying(false);
+  }, []);
 
-      cleanupHls();
-      if (videoRef.current) videoRef.current.src = "";
-      setSelectedUrl(null);
-      setActiveRecording(null);
-      setIsPlaying(false);
-    },
-    [cleanupHls]
-  );
-
-  // --- DEVICE SELECT ---
   const handleDeviceSelect = useCallback(
     (uid: string) => {
       setSelectedUid(uid);
       setDeviceOpen(false);
       navigate(`/dashboard/playback?uid=${uid}`);
-
-      cleanupHls();
-      if (videoRef.current) videoRef.current.src = "";
-
       setRecordings([]);
       setSelectedUrl(null);
       setActiveRecording(null);
       setError(null);
       setIsPlaying(false);
     },
-    [cleanupHls, navigate]
+    [navigate]
   );
-
-  const minDate = new Date();
-  minDate.setDate(minDate.getDate() - 7);
-  const maxDate = new Date();
-
-  // Get selected device name for display
-  const selectedDevice = devices.find((d) => d.uid === selectedUid);
 
   return (
     <div className="ml-4 mr-4 space-y-4">
       <AspectRatio ratio={16 / 9} className="rounded-lg bg-black relative">
-        <video
-          ref={videoRef}
-          className="w-full h-full rounded-lg"
-          controls
-          preload="metadata"
-          playsInline
-          muted
-        />
-        {!selectedUrl && !loading && (
+        {selectedUrl ? (
+          <ClapprPlayer
+            ref={playerRef}
+            url={selectedUrl}
+            autoPlay={true}
+            muted={false}
+            isLive={activeRecording ? isRecordingLive(activeRecording) : false}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={handleVideoEnded}
+            onWaiting={() => setVideoLoading(true)}
+            onCanPlay={() => setVideoLoading(false)}
+            onError={(e) => setError(e)}
+          />
+        ) : (
           <div className="absolute inset-0 flex items-center justify-center text-white/70">
             <div className="text-center">
               <Play className="h-16 w-16 mx-auto mb-2 opacity-50" />
@@ -415,8 +299,9 @@ const Playback = () => {
           </div>
         )}
       </AspectRatio>
+
       {/* Controls */}
-      <div className="flex items-center justify-center space-x-4 p-2 bg-muted rounded-lg">
+      {/* <div className="flex items-center justify-center space-x-4 p-2 bg-muted rounded-lg">
         <Button
           variant="outline"
           size="icon"
@@ -461,16 +346,17 @@ const Playback = () => {
         >
           <SkipForwardIcon className="h-5 w-5" />
         </Button>
-      </div>
-      <Activity mode={error ? "visible" : "hidden"}>
+      </div> */}
+
+      {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-      </Activity>
-      {/* Camera Picker & Date */}
+      )}
+
+      {/* Camera & Date Pickers */}
       <div className="flex flex-wrap gap-4">
-        {/* Device Picker */}
         <div className="flex flex-col gap-3">
           <Label>Camera</Label>
           <Popover open={deviceOpen} onOpenChange={setDeviceOpen}>
@@ -481,7 +367,7 @@ const Playback = () => {
                 disabled={loading || devices.length === 0}
               >
                 {selectedDevice
-                  ? selectedDevice.uid
+                  ? selectedDevice.name
                   : selectedUid
                     ? `UID: ${selectedUid.substring(0, 8)}...`
                     : devices.length === 0
@@ -501,7 +387,9 @@ const Playback = () => {
                   >
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{d.name}</span>
-                      <span className="text-medium">{d.uid}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {d.uid}
+                      </span>
                     </div>
                   </Button>
                 ))}
@@ -510,7 +398,6 @@ const Playback = () => {
           </Popover>
         </div>
 
-        {/* Date Picker */}
         <div className="flex flex-col gap-3">
           <Label>Date</Label>
           <Popover open={open} onOpenChange={setOpen}>
@@ -539,7 +426,6 @@ const Playback = () => {
           </Popover>
         </div>
 
-        {/* Current Recording */}
         {activeRecording && (
           <div className="flex flex-col gap-3 flex-1">
             <Label>Current Recording</Label>
@@ -555,27 +441,29 @@ const Playback = () => {
       </div>
 
       {/* Timeline */}
-      <Activity mode={!loading ? "visible" : "hidden"}>
+      {!loading && (
         <PlaybackTimeline
-          videoRef={videoRef}
           recordings={recordings}
           selectedDate={date}
           onSelectRecording={handleTimelineSelect}
           activeRecording={activeRecording}
+          currentTime={currentTime}
         />
-      </Activity>
-      <Activity mode={loading ? "visible" : "hidden"}>
+      )}
+
+      {loading && (
         <div className="flex items-center justify-center gap-2 text-muted-foreground py-4">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Loading recordings...</span>
         </div>
-      </Activity>
-      <Activity mode={showSessionTimeout ? "visible" : "hidden"}>
+      )}
+
+      {showSessionTimeout && (
         <SessionTimeoutDialog
           open={showSessionTimeout}
           onClose={() => setShowSessionTimeout(false)}
         />
-      </Activity>
+      )}
     </div>
   );
 };

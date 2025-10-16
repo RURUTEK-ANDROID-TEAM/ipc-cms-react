@@ -1,0 +1,19 @@
+/* Center the play button */
+.clappr-media-controls .media-control-button.play-button,
+.clappr-media-controls .media-control-button.pause-button {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 1000 !important;
+}
+
+/* Ensure play button is visible when needed */
+.clappr-player-wrapper .clappr-media-controls {
+  position: relative !important;
+}
+
+/* Hide controls overlay when playing to keep centered play button visible only when needed */
+.clappr-player-wrapper.playing .clappr-media-controls .media-control-button.play-button {
+  display: none !important;
+}
