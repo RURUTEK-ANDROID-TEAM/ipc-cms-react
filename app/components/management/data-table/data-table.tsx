@@ -609,19 +609,21 @@ export const DataTable = ({
       header: () => null,
       size: 50,
       cell: ({ row }) => (
-        <ActionCell
-          canEdit
-          canDelete
-          onEdit={() => setEditUserDialog({ open: true, user: row.original })}
-          onDelete={() =>
-            setDeleteDialog({
-              open: true,
-              type: "user",
-              item: row.original,
-              loading: false,
-            })
-          }
-        />
+        <Activity mode={row.original.role !== "admin" ? "visible" : "hidden"}>
+          <ActionCell
+            canEdit
+            canDelete
+            onEdit={() => setEditUserDialog({ open: true, user: row.original })}
+            onDelete={() =>
+              setDeleteDialog({
+                open: true,
+                type: "user",
+                item: row.original,
+                loading: false,
+              })
+            }
+          />
+        </Activity>
       ),
     },
   ];

@@ -1,23 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const DEFAULT_SIGNALING_URL = "ws://172.16.0.157:9595/wsse";
-
-const DEFAULT_ICE: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:172.16.0.147:3478" },
-    {
-      urls: "turn:172.16.0.147:3478?transport=udp",
-      username: "rurutek",
-      credential: "ruru@123",
-    },
-    {
-      urls: "turn:172.16.0.147:5349?transport=tcp",
-      username: "rurutek",
-      credential: "ruru@123",
-    },
-  ],
-};
-
 export const useSignalingServer = (signalingUrl: string) => {
   const wsRef = useRef<WebSocket | null>(null);
   const [state, setState] = useState<

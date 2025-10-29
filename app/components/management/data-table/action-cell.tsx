@@ -1,9 +1,10 @@
-import { IconDotsVertical, IconTrash } from "@tabler/icons-react";
+import { IconDotsVertical, IconEdit, IconTrash } from "@tabler/icons-react";
 import { Button } from "../../ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../ui/dropdown-menu";
 import { Activity } from "react";
@@ -38,13 +39,13 @@ export const ActionCell = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-32">
-        {/* {canEdit && (
+        {canEdit && (
           <DropdownMenuItem onClick={onEdit} className="cursor-pointer">
             <IconEdit className="mr-2 h-4 w-4" />
             Edit
           </DropdownMenuItem>
         )}
-        {canEdit && canDelete && <DropdownMenuSeparator />} */}
+        {canEdit && canDelete && <DropdownMenuSeparator />}
 
         <Activity mode={canDelete && !hideDelete ? "visible" : "hidden"}>
           <DropdownMenuItem
