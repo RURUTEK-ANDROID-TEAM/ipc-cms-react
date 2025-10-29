@@ -24,12 +24,14 @@ const API_URL = "http://172.16.0.157:5000/api";
 interface AddDevicesDialogProps {
   group: GroupType | null;
   open: boolean;
+  userRole: string;
   onOpenChange: (open: boolean) => void;
 }
 
 export const AddDevicesDialog = ({
   group,
   open,
+  userRole,
   onOpenChange,
 }: AddDevicesDialogProps) => {
   const navigate = useNavigate();
@@ -198,13 +200,21 @@ export const AddDevicesDialog = ({
                   items-center gap-3 rounded-lg border p-3 has-[[aria-checked=true]]:border-blue-600 
                   has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 
                   dark:has-[[aria-checked=true]]:bg-blue-950"
+          onClick={(e) => {
+            if (userRole === "viewer") {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }}
         >
-          <Checkbox
-            className="h-5 w-5 dark:text-white"
-            checked={selectedDevices.has(cam.camera_id)}
-            onCheckedChange={() => toggleDevice(cam.camera_id)}
-            disabled={loading}
-          />
+          <Activity mode={userRole !== "viewer" ? "visible" : "hidden"}>
+            <Checkbox
+              className="h-5 w-5 dark:text-white"
+              checked={selectedDevices.has(cam.camera_id)}
+              onCheckedChange={() => toggleDevice(cam.camera_id)}
+              disabled={loading}
+            />
+          </Activity>
           <div className="flex-1">
             <div className="font-medium">{cam.uid || "Unknown UID"}</div>
             <div className="text-xs text-muted-foreground">
@@ -235,23 +245,47 @@ export const AddDevicesDialog = ({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Manage Devices for {group.name}</DialogTitle>
-            <DialogDescription>
-              Select the devices you want to assign to this group.
-            </DialogDescription>
+            <Activity mode={userRole !== "viewer" ? "visible" : "hidden"}>
+              <DialogTitle>Manage Devices for {group.name}</DialogTitle>
+              <DialogDescription>
+                Select the devices you want to assign to this group.
+              </DialogDescription>
+            </Activity>
+            <Activity mode={userRole === "viewer" ? "visible" : "hidden"}>
+              <DialogTitle>View Devices for {group.name}</DialogTitle>
+              <DialogDescription>
+                View the devices of this group.
+              </DialogDescription>
+            </Activity>
           </DialogHeader>
-          <div className="max-h-80 overflow-y-auto space-y-2">{deviceList}</div>
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>{selectedDevices.size} device(s) selected</span>
-            <span>{cameras.length} total devices</span>
-          </div>
-          <DialogFooter>
-            <FormActions
-              loading={loading}
-              onCancel={() => onOpenChange(false)}
-              onSave={handleSave}
-            />
-          </DialogFooter>
+
+          <Activity mode={userRole !== "viewer" ? "visible" : "hidden"}>
+            <div className="max-h-80 overflow-y-auto space-y-2">
+              {deviceList}
+            </div>
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{selectedDevices.size} device(s) selected</span>
+              <span>{cameras.length} total devices</span>
+            </div>
+          </Activity>
+          <Activity mode={userRole === "viewer" ? "visible" : "hidden"}>
+            <div className="max-h-80 overflow-y-auto space-y-2">
+              {deviceList}
+            </div>
+            {/* <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{selectedDevices.size} device(s) selected</span>
+              <span>{cameras.length} total devices</span>
+            </div> */}
+          </Activity>
+          <Activity mode={userRole !== "viewer" ? "visible" : "hidden"}>
+            <DialogFooter>
+              <FormActions
+                loading={loading}
+                onCancel={() => onOpenChange(false)}
+                onSave={handleSave}
+              />
+            </DialogFooter>
+          </Activity>
         </DialogContent>
       </Dialog>
     </>

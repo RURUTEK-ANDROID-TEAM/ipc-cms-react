@@ -80,6 +80,7 @@ export const DataTable = ({
   users: initUsers = [],
   devices: initDevices = [],
   groups: initGroups = [],
+  userRole = "",
   hideUsersTable = false,
   showAddUsers = false,
   showAddDevices = false,
@@ -92,6 +93,7 @@ export const DataTable = ({
   users?: UserType[];
   devices?: DeviceType[];
   groups?: GroupType[];
+  userRole?: string;
   hideUsersTable?: boolean;
   showAddUsers?: boolean;
   showAddDevices?: boolean;
@@ -650,21 +652,23 @@ export const DataTable = ({
       id: "actions",
       header: () => null,
       cell: ({ row }) => (
-        <ActionCell
-          canEdit
-          canDelete
-          onEdit={() =>
-            setEditDeviceDialog({ open: true, device: row.original })
-          }
-          onDelete={() =>
-            setDeleteDialog({
-              open: true,
-              type: "device",
-              item: row.original,
-              loading: false,
-            })
-          }
-        />
+        <Activity mode={userRole !== "viewer" ? "visible" : "hidden"}>
+          <ActionCell
+            canEdit
+            canDelete
+            onEdit={() =>
+              setEditDeviceDialog({ open: true, device: row.original })
+            }
+            onDelete={() =>
+              setDeleteDialog({
+                open: true,
+                type: "device",
+                item: row.original,
+                loading: false,
+              })
+            }
+          />
+        </Activity>
       ),
       size: 50,
     },
@@ -685,7 +689,7 @@ export const DataTable = ({
             setManageDevicesOpen(true);
           }}
         >
-          Manage Devices
+          {userRole !== "viewer" ? "Manage Devices" : "View Devices"}
         </Button>
       ),
       size: 120,
@@ -699,19 +703,23 @@ export const DataTable = ({
       id: "actions",
       header: () => null,
       cell: ({ row }) => (
-        <ActionCell
-          canEdit
-          canDelete
-          onEdit={() => setEditGroupDialog({ open: true, group: row.original })}
-          onDelete={() =>
-            setDeleteDialog({
-              open: true,
-              type: "group",
-              item: row.original,
-              loading: false,
-            })
-          }
-        />
+        <Activity mode={userRole !== "viewer" ? "visible" : "hidden"}>
+          <ActionCell
+            canEdit
+            canDelete
+            onEdit={() =>
+              setEditGroupDialog({ open: true, group: row.original })
+            }
+            onDelete={() =>
+              setDeleteDialog({
+                open: true,
+                type: "group",
+                item: row.original,
+                loading: false,
+              })
+            }
+          />
+        </Activity>
       ),
       size: 50,
     },
@@ -1264,6 +1272,7 @@ export const DataTable = ({
       <AddDevicesDialog
         group={selectedGroup}
         open={manageDevicesOpen}
+        userRole={userRole}
         onOpenChange={(open) => {
           setManageDevicesOpen(open);
           if (!open) setSelectedGroup(null);

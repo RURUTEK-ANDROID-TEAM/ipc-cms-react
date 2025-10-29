@@ -51,6 +51,7 @@ const Management: FC<ManagementProps> = ({
   const updateOnlineUIDs = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [users, setUsers] = useState<any[]>([]);
+  const [userRole, setUserRole] = useState<string>();
   const [devices, setDevices] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [onlineUIDs, setOnlineUIDs] = useState<string[]>([]);
@@ -112,6 +113,7 @@ const Management: FC<ManagementProps> = ({
           { headers }
         );
         const userRole = profileResponse.data.roles[0];
+        setUserRole(userRole);
 
         // Set add permissions based on role
         setShowAddUsers(userRole === "admin");
@@ -328,6 +330,7 @@ const Management: FC<ManagementProps> = ({
         users={users}
         devices={devices}
         groups={groups}
+        userRole={userRole}
         refreshUsers={fetchUsers}
         refreshDevices={fetchDevices}
         refreshGroups={fetchGroups}
